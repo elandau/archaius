@@ -1,12 +1,11 @@
 package com.netflix.config.resolver;
 
-import com.netflix.config.api.ConfigurationNode;
+import com.netflix.config.api.PropertySource;
 import com.netflix.config.api.TypeResolver;
 
 import java.lang.reflect.Type;
-import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 public class MapTypeResolver implements TypeResolver<Map<Object, Object>> {
     private final Type keyType;
@@ -18,17 +17,24 @@ public class MapTypeResolver implements TypeResolver<Map<Object, Object>> {
     }
     
     @Override
-    public Map<Object, Object> resolve(ConfigurationNode node, Registry resolvers) {
-        return Collections.unmodifiableMap(node.children().stream()
-            .map(key -> {
-                System.out.println("key: " + key);
-                int index = key.indexOf(".");
-                return index == -1 ? key : key.substring(0, index);
-            })
-            .distinct()
-            .collect(Collectors.toMap(
-                key -> key,
-                key -> resolvers.get(valueType).resolve(node.getChild(key), resolvers))
-            ));
+    public Map<Object, Object> resolve(String path, PropertySource source, Registry resolvers) {
+        HashMap<Object, Object> map = new HashMap<>();
+        
+        TypeResolver<?> keyResolver = resolvers.get(keyType);
+        TypeResolver<?> valueResolver = resolvers.get(valueType);
+        
+        source.forEach(path, (key, value) -> {
+            int index = key.indexOf(".");
+            String mapKey = index == -1 ? key : key.substring(0, index);
+            
+            map.put(keyResolver.resolve(mapKey, resolvers), valueResolver.resolve(value, resolvers));
+        });
+        
+        return map;
+    }
+
+    @Override
+    public Map<Object, Object> resolve(Object value, TypeResolver.Registry resolvers) {
+        throw new IllegalStateException();
     }
 }

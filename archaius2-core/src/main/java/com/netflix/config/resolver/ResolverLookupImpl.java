@@ -1,7 +1,7 @@
 package com.netflix.config.resolver;
 
 import com.netflix.archaius.StringConverterRegistry;
-import com.netflix.config.api.ConfigurationNode;
+import com.netflix.config.api.PropertySource;
 import com.netflix.config.api.TypeResolver;
 
 import java.lang.reflect.ParameterizedType;
@@ -19,16 +19,19 @@ public class ResolverLookupImpl implements TypeResolver.Registry {
         StringConverterRegistry.DEFAULT_CONVERTERS.forEach((type, converter) -> {
             deserializers.put(type, new TypeResolver<Object>() {
                 @Override
-                public Object resolve(ConfigurationNode node, Registry context) {
-                    return node.getValue().map(value -> {
-                        if (value instanceof String) {
-                            return converter.apply((String)value);
-                        } else if (value.getClass() == type) {
-                            return value;
-                        } else {
-                            throw new IllegalStateException();
-                        }
-                    }).orElse(null);
+                public Object resolve(String path, PropertySource source, TypeResolver.Registry resolvers) {
+                    throw new IllegalStateException();
+                }
+
+                @Override
+                public Object resolve(Object value, TypeResolver.Registry resolvers) {
+                    if (value instanceof String) {
+                        return converter.apply((String)value);
+                    } else if (value.getClass() == type) {
+                        return value;
+                    } else {
+                        throw new IllegalArgumentException();
+                    }
                 }
             });
         });

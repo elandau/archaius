@@ -56,4 +56,16 @@ public class ConfigToPropertySource implements PropertySource {
         return this;
     }
 
+    @Override
+    public void forEach(String prefix, BiConsumer<String, Object> consumer) {
+        // TODO Auto-generated method stub
+        
+    }
+
+    @Override
+    public PropertySource subset(String prefix) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
 }

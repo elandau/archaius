@@ -1,7 +1,7 @@
 package com.netflix.config.resolver;
 
 import com.netflix.archaius.api.annotations.PropertyName;
-import com.netflix.config.api.ConfigurationNode;
+import com.netflix.config.api.PropertySource;
 import com.netflix.config.api.TypeResolver;
 
 import java.lang.invoke.MethodHandles;
@@ -11,6 +11,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 
 /**
@@ -32,22 +33,28 @@ public class ProxyTypeResolver<T> implements TypeResolver<T> {
     }
     
     @Override
-    public T resolve(ConfigurationNode node, Registry resolvers) {
+    public T resolve(String path, PropertySource source, Registry resolvers) {
+        if (!path.isEmpty() && !path.endsWith(".")) {
+            return resolve(path + ".", source, resolvers);
+        }
         final Map<Method, MethodInvoker> methods = new HashMap<>();
         for (Method method : type.getDeclaredMethods()) {
-            final ConfigurationNode childNode = node.getChild(nameResolver.apply(method));
+            final String methodName = nameResolver.apply(method);
             try {
-                final Object value = resolvers.get(method.getGenericReturnType())
-                    .resolve(childNode, resolvers);
+                // TODO: What if not found
+                final Optional<?> value = source
+                    .getProperty(path + methodName)
+                    .map(v -> resolvers.get(method.getGenericReturnType())
+                            .resolve(v, resolvers));
                 
                 methods.put(method, new MethodInvoker() {
                     @Override
                     public Object invoke(Object... args) {
-                        return value;
+                        return value.orElse(null);
                     }
                 });
             } catch (Exception e) {
-                throw new RuntimeException("Failed to map method " + method + " at " + childNode, e);
+                throw new RuntimeException("Failed to map method " + method + " at " + path, e);
             }
         }
         
@@ -102,6 +109,11 @@ public class ProxyTypeResolver<T> implements TypeResolver<T> {
         return (T)Proxy.newProxyInstance(type.getClassLoader(), new Class[] { type }, handler);
     }
     
+    @Override
+    public T resolve(Object value, com.netflix.config.api.TypeResolver.Registry resolvers) {
+        throw new IllegalStateException();
+    }
+
     private static Function<Method, String> DEFAULT_NAME_RESOLVER = method -> {
         final PropertyName nameAnnot = method.getAnnotation(PropertyName.class); 
         if (nameAnnot != null) {
@@ -130,6 +142,4 @@ public class ProxyTypeResolver<T> implements TypeResolver<T> {
         c[0] = Character.toLowerCase(c[0]);
         return new String(c);
     }
-
-
 }

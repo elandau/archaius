@@ -32,5 +32,7 @@ public interface TypeResolver<T> {
      * @param registry Resolve 
      * @return Resolved type
      */
-    T resolve(ConfigurationNode node, Registry registry);
+    T resolve(String path, PropertySource source, Registry resolvers);
+    
+    T resolve(Object value, TypeResolver.Registry resolvers);
 }

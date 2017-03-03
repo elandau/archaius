@@ -1,17 +1,17 @@
-package com.netflix.archaius;
+package com.netflix.archaius.sources;
 
-import java.util.List;
-import java.util.Map;
-
-import org.junit.Test;
-
-import com.netflix.archaius.PropertySourceConfiguration;
 import com.netflix.archaius.api.annotations.DefaultValue;
 import com.netflix.archaius.api.annotations.PropertyName;
 import com.netflix.config.api.PropertySource;
 import com.netflix.config.sources.ImmutablePropertySource;
+import com.netflix.config.sources.TypeResolvingPropertySource;
 
-public class PropertySourceBasedConfigurationTest {
+import org.junit.Test;
+
+import java.util.List;
+import java.util.Map;
+
+public class TypeResolvingPropertySourceTest {
     public static interface Foo {
         String getString();
         
@@ -30,6 +30,7 @@ public class PropertySourceBasedConfigurationTest {
     
     @Test
     public void test() {
+        System.out.println("Starting");
         PropertySource source = ImmutablePropertySource.builder()
                 .put("value", "30")
                 .put("foo.string",  "a1")
@@ -41,7 +42,7 @@ public class PropertySourceBasedConfigurationTest {
                 .put("foo.map.a3", "${value}")
                 .build();
         
-        PropertySourceConfiguration configuration = new PropertySourceConfiguration(source);
+        TypeResolvingPropertySource configuration = new TypeResolvingPropertySource(source);
         Foo foo = configuration.get("foo", Foo.class).get();
 
 //        foo.onString((newValue) -> do something);

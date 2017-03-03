@@ -40,7 +40,7 @@ public class StringConverterRegistry {
             else if (v.equalsIgnoreCase("false") || v.equalsIgnoreCase("no") || v.equalsIgnoreCase("off")) {
                 return Boolean.FALSE;
             }
-            throw new IllegalArgumentException("Error parsing value '" + v, new Exception("Expected one of [true, yes, on, false, no, off]"));
+            throw new IllegalArgumentException("Error parsing value '" + v, new Exception("Expected one of [true, yes, on, false, no, off] but got " + v));
         });
         DEFAULT_CONVERTERS.put(Boolean.class, DEFAULT_CONVERTERS.get(boolean.class));
         DEFAULT_CONVERTERS.put(Integer.class, Integer::valueOf);

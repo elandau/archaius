@@ -62,6 +62,18 @@ public interface PropertySource {
     void forEach(BiConsumer<String, Object> consumer);
     
     /**
+     * @patah prefix
+     * @return Stream of all entries of this PropertySource starting with the prefix
+     */
+    void forEach(String prefix, BiConsumer<String, Object> consumer);
+    
+    /**
+     * @param prefix
+     * @return A PropertySource that is a subset of all properties with the specified prefix
+     */
+    PropertySource subset(String prefix);
+    
+    /**
      * @return Return a PropertySource that provides tree-like traversal of the current PropertySource
      * snapshot state
      */

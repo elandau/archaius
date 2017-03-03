@@ -37,7 +37,7 @@ public interface Configuration {
      * @param key
      * @return
      */
-    public Optional<Object> getProperty(String key);
+//    public Optional<Object> getProperty(String key);
     
     /**
      * Get a property that has been interpolated and resolved to a specific type
@@ -55,14 +55,14 @@ public interface Configuration {
      */
     public <T> Optional<T> get(String key, Class<T> type);
     
-    /**
-     * Collection of all property names
-     * @return
-     */
-    Collection<String> getPropertyNames();
-    
-    /**
-     * @return True if there are no properties in the Configuration
-     */
-    boolean isEmpty();
+//    /**
+//     * Collection of all property names
+//     * @return
+//     */
+//    Collection<String> getPropertyNames();
+//    
+//    /**
+//     * @return True if there are no properties in the Configuration
+//     */
+//    boolean isEmpty();
 }

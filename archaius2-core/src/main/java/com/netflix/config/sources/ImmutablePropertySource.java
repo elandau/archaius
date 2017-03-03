@@ -134,4 +134,20 @@ public class ImmutablePropertySource implements PropertySource {
         }
         return hashCode;
     }
+
+    @Override
+    public PropertySource subset(String prefix) {
+        if (prefix.isEmpty()) {
+            return this;
+        } else if (!prefix.endsWith(".")) {
+            return subset(prefix + ".");
+        } else {
+            return new SubsetPropertySource(this, prefix);
+        }
+    }
+
+    @Override
+    public void forEach(String prefix, BiConsumer<String, Object> consumer) {
+        properties.subMap(prefix, prefix + Character.MAX_VALUE).forEach(consumer);
+    }
 }

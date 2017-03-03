@@ -1,13 +1,12 @@
 package com.netflix.config.resolver;
 
-import com.netflix.config.api.ConfigurationNode;
+import com.netflix.config.api.PropertySource;
 import com.netflix.config.api.TypeResolver;
 
 import java.lang.reflect.Type;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class ListTypeResolver implements TypeResolver<List<?>> {
@@ -19,21 +18,26 @@ public class ListTypeResolver implements TypeResolver<List<?>> {
     }
     
     @Override
-    public List<?> resolve(ConfigurationNode node, Registry resolvers) {
-        return node.getValue().map(value -> {
+    public List<?> resolve(String path, PropertySource source, Registry resolvers) {
+        return source.getProperty(path).map(value -> {
             if (value instanceof String) {
-                return Collections.unmodifiableList(Arrays.asList(((String)value).split(","))
-                    .stream()
-                    .map(element -> resolvers.get(elementType).resolve(new ConfigurationNode() {
-                        @Override
-                        public Optional<?> getValue() {
-                            return Optional.of(element);
-                        }
-                    }, resolvers))
-                    .collect(Collectors.toList()));
+                return resolve(value, resolvers);
             } else {
                 throw new IllegalArgumentException();
             }
         }).orElse(Collections.emptyList());
+    }
+    
+    @Override
+    public List<?> resolve(Object value, TypeResolver.Registry registry) {
+        TypeResolver<?> elementResolver = registry.get(elementType);
+        
+        if (value instanceof String) {
+            return Arrays.stream(((String)value).split(","))
+                .map(element -> elementResolver.resolve(element, registry))
+                .collect(Collectors.toList());
+        } else {
+            throw new IllegalArgumentException();
+        }
     }
 }

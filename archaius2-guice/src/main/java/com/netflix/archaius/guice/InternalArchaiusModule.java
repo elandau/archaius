@@ -3,12 +3,12 @@ package com.netflix.archaius.guice;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
-import com.netflix.archaius.PropertySourceConfiguration;
 import com.netflix.config.api.Configuration;
 import com.netflix.config.api.Layers;
 import com.netflix.config.api.PropertySource;
 import com.netflix.config.sources.EnvironmentPropertySource;
 import com.netflix.config.sources.LayeredPropertySource;
+import com.netflix.config.sources.TypeResolvingPropertySource;
 import com.netflix.config.sources.SystemPropertySource;
 import com.netflix.governator.providers.AdvisableAnnotatedMethodScanner;
 import com.netflix.governator.providers.ProvidesWithAdvice;
@@ -44,7 +44,7 @@ final class InternalArchaiusModule extends AbstractModule {
     @Provides
     @Singleton
     Configuration getConfiguration(PropertySource propertySource) {
-        return new PropertySourceConfiguration(propertySource);
+        return new TypeResolvingPropertySource(propertySource);
     }
 
     @Override

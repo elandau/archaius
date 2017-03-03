@@ -59,4 +59,13 @@ public class EmptyPropertySource implements PropertySource {
     @Override
     public void forEach(BiConsumer<String, Object> consumer) {
     }
+
+    @Override
+    public void forEach(String prefix, BiConsumer<String, Object> consumer) {
+    }
+    
+    @Override
+    public PropertySource subset(String prefix) {
+        return this;
+    }
 }

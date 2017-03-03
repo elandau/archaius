@@ -1,29 +1,27 @@
-package com.netflix.archaius;
+package com.netflix.config.sources;
 
 import com.netflix.config.api.Configuration;
-import com.netflix.config.api.ConfigurationNode;
 import com.netflix.config.api.PropertySource;
-import com.netflix.config.api.TypeResolver.Registry;
+import com.netflix.config.api.TypeResolver;
 import com.netflix.config.resolver.ResolverLookupImpl;
-import com.netflix.config.sources.InterpolatingPropertySource;
-import com.netflix.config.sources.PropertySourcePropertyNode;
 
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.util.Collection;
 import java.util.Optional;
 
-public class PropertySourceConfiguration implements Configuration {
+public class TypeResolvingPropertySource extends DelegatingPropertySource implements Configuration {
 
-    private final Registry lookup;
-    private final PropertySource source;
-    private final PropertySource interpolated;
+    private final TypeResolver.Registry registry;
+    private final PropertySource delegate;
     
-    public PropertySourceConfiguration(PropertySource source) {
-        this.interpolated = new InterpolatingPropertySource(source);
-        this.source = source;
-        this.lookup = new ResolverLookupImpl();
+    public TypeResolvingPropertySource(PropertySource source) {
+        this(source, new ResolverLookupImpl());
+    }
+
+    public TypeResolvingPropertySource(PropertySource source, TypeResolver.Registry registry) {
+        this.delegate = new InterpolatingPropertySource(source);
+        this.registry = registry;
     }
 
     @Override
@@ -77,15 +75,9 @@ public class PropertySourceConfiguration implements Configuration {
     }
 
     @Override
-    public Optional<Object> getProperty(String key) {
-        return source.getProperty(key);
-    }
-    
-    @Override
     public <T> Optional<T> get(String key, Type type) {
         try {
-            ConfigurationNode node = new PropertySourcePropertyNode(interpolated.snapshot()).getChild(key);
-            return (Optional<T>) Optional.ofNullable(lookup.get(type).resolve(node, lookup));
+            return (Optional<T>) Optional.ofNullable(registry.get(type).resolve(key, this, registry));
         } catch (RuntimeException e) {
             throw new RuntimeException("Failed to get property " + key + " of type " + type, e);
         }
@@ -94,20 +86,25 @@ public class PropertySourceConfiguration implements Configuration {
     @Override
     public <T> Optional<T> get(String key, Class<T> type) {
         try {
-            ConfigurationNode node = new PropertySourcePropertyNode(interpolated.snapshot()).getChild(key);
-            return Optional.ofNullable(lookup.forType(type).resolve(node, lookup));
+            return (Optional<T>) Optional.ofNullable(registry.get(type).resolve(key, this, registry));
         } catch (RuntimeException e) {
             throw new RuntimeException("Failed to get property " + key + " of type " + type, e);
         }
     }
 
     @Override
-    public boolean isEmpty() {
-        return source.isEmpty();
+    public TypeResolvingPropertySource subset(String prefix) {
+        if (prefix.isEmpty()) {
+            return this;
+        } else if (!prefix.endsWith(".")) {
+            return subset(prefix + ".");
+        } else {
+            return new TypeResolvingPropertySource(delegate().subset(prefix), registry);
+        }
     }
 
     @Override
-    public Collection<String> getPropertyNames() {
-        return source.getKeys();
+    protected PropertySource delegate() {
+        return delegate;
     }
 }

@@ -1,24 +1,24 @@
 package com.netflix.archaius.config;
 
+import com.netflix.archaius.api.Config;
+import com.netflix.archaius.api.ConfigListener;
+import com.netflix.archaius.api.Decoder;
+import com.netflix.archaius.api.StrInterpolator;
+import com.netflix.config.sources.TypeResolvingPropertySource;
+
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Iterator;
 import java.util.List;
 import java.util.function.BiConsumer;
 
-import com.netflix.archaius.api.Config;
-import com.netflix.archaius.api.ConfigListener;
-import com.netflix.archaius.api.Decoder;
-import com.netflix.archaius.api.StrInterpolator;
-import com.netflix.config.api.Configuration;
-
 /**
  */
 public class ConfigurationToConfigAdapter implements Config {
 
-    private final Configuration configuration;
+    private final TypeResolvingPropertySource configuration;
     
-    public ConfigurationToConfigAdapter(Configuration configuration) {
+    public ConfigurationToConfigAdapter(TypeResolvingPropertySource configuration) {
         this.configuration = configuration;
     }
     
@@ -34,7 +34,7 @@ public class ConfigurationToConfigAdapter implements Config {
 
     @Override
     public Object getRawProperty(String key) {
-        return configuration.getProperty(key).orElse(null);
+        return configuration.getProperty(key);
     }
 
     @Override
@@ -177,7 +177,7 @@ public class ConfigurationToConfigAdapter implements Config {
 
     @Override
     public Iterator<String> getKeys() {
-        return configuration.getPropertyNames().iterator();
+        return configuration.getKeys().iterator();
     }
 
     @Override
