@@ -8,10 +8,12 @@ import java.util.stream.Stream;
 
 /**
  * Contract for a source of raw properties.  A PropertySource may be associated with a single
- * data source or be a composite of multiple PropertySource instances.  Values may be any object
- * including strings, boxed primitives, collections, pojos, etc.
+ * data source or is a composite of multiple PropertySource instances.  Values may be any object
+ * including strings, boxed primitives, collections, pojos, list, etc.
  * 
- * PropertySource internals are exposed via a set of convenience streaming APIs for common use cases.
+ * Users are not expected to interact with PropertySource for reading configuration.  
+ * 
+ * @see Configuration
  */
 public interface PropertySource {
     /**
@@ -24,7 +26,7 @@ public interface PropertySource {
      * @param key
      * @return Value for the property 
      */
-    Optional<?> getProperty(String key);
+    Optional<Object> getProperty(String key);
     
     /**
      * @return Immutable collection of all property names.  For dynamic PropertySources it's still possible
@@ -60,7 +62,7 @@ public interface PropertySource {
     void forEach(BiConsumer<String, Object> consumer);
     
     /**
-     * @return Return a PropertyNode that provides tree-like traversal of the current PropertySource
+     * @return Return a PropertySource that provides tree-like traversal of the current PropertySource
      * snapshot state
      */
     PropertySource snapshot();

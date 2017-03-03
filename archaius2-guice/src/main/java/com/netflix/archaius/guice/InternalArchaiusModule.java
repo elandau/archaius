@@ -2,84 +2,49 @@ package com.netflix.archaius.guice;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
-import com.google.inject.Scopes;
 import com.google.inject.Singleton;
-import com.google.inject.matcher.Matchers;
-import com.google.inject.multibindings.Multibinder;
-import com.netflix.archaius.ConfigProxyFactory;
-import com.netflix.archaius.DefaultPropertyFactory;
 import com.netflix.archaius.PropertySourceConfiguration;
-import com.netflix.archaius.api.Config;
-import com.netflix.archaius.api.ConfigReader;
-import com.netflix.archaius.api.Decoder;
-import com.netflix.archaius.api.PropertyFactory;
-import com.netflix.archaius.api.config.SettableConfig;
-import com.netflix.archaius.api.inject.RuntimeLayer;
-import com.netflix.archaius.config.ConfigurationToConfigAdapter;
-import com.netflix.archaius.config.DefaultSettableConfig;
-import com.netflix.archaius.readers.PropertiesConfigReader;
 import com.netflix.config.api.Configuration;
 import com.netflix.config.api.Layers;
+import com.netflix.config.api.PropertySource;
 import com.netflix.config.sources.EnvironmentPropertySource;
 import com.netflix.config.sources.LayeredPropertySource;
 import com.netflix.config.sources.SystemPropertySource;
 import com.netflix.governator.providers.AdvisableAnnotatedMethodScanner;
 import com.netflix.governator.providers.ProvidesWithAdvice;
 
+/**
+ * Base module to set up Archaius inside Guice.  Archaius setup is split into several bindings
+ * that can be modified using @Advises LayeredPropertySource.  
+ * 
+ */
 final class InternalArchaiusModule extends AbstractModule {
     
     @Override
     protected void configure() {
         install(AdvisableAnnotatedMethodScanner.asModule());
-        
-        ConfigurationInjectingListener listener = new ConfigurationInjectingListener();
-        requestInjection(listener);
-        bind(ConfigurationInjectingListener.class).toInstance(listener);
-        requestStaticInjection(ConfigurationInjectingListener.class);
-        bindListener(Matchers.any(), listener);
-        
-        Multibinder.newSetBinder(binder(), ConfigReader.class)
-            .addBinding().to(PropertiesConfigReader.class).in(Scopes.SINGLETON);
+        install(ConfigurationInjectingListener.asModule());
+    }
+    
+    @Provides
+    @Singleton
+    PropertySource getPropertySource(LayeredPropertySource source) {
+        return source;
     }
     
     @ProvidesWithAdvice
     @Singleton
-    LayeredPropertySource getPropertySource() {
+    LayeredPropertySource getLayeredPropertySource() {
         LayeredPropertySource source = new LayeredPropertySource("root");
-        source.addPropertySource(Layers.ENVIRONMENT, EnvironmentPropertySource.INSTANCE);
-        source.addPropertySource(Layers.SYSTEM, SystemPropertySource.INSTANCE);
+        source.addPropertySourceAtLayer(Layers.ENVIRONMENT, EnvironmentPropertySource.INSTANCE);
+        source.addPropertySourceAtLayer(Layers.SYSTEM, SystemPropertySource.INSTANCE);
         return source;
     }
     
     @Provides
     @Singleton
-    Configuration getConfiguration(LayeredPropertySource propertySource) {
+    Configuration getConfiguration(PropertySource propertySource) {
         return new PropertySourceConfiguration(propertySource);
-    }
-    
-    @Provides
-    @Singleton
-    Config getConfiguration(Configuration configuration) {
-        return new ConfigurationToConfigAdapter(configuration);
-    }
-    
-    @Provides
-    @Singleton
-    @RuntimeLayer
-    SettableConfig getSettableConfig() {
-        return new DefaultSettableConfig();
-    }
-    
-    @Provides
-    @Singleton
-    PropertyFactory getPropertyFactory(Config config) {
-        return DefaultPropertyFactory.from(config);
-    }
-
-    @Provides
-    @Singleton
-    ConfigProxyFactory getProxyFactory(Config config, Decoder decoder, PropertyFactory factory) {
-        return new ConfigProxyFactory(config, decoder, factory);
     }
 
     @Override

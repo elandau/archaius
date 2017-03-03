@@ -18,6 +18,7 @@ package com.netflix.archaius.typesafe;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.function.BiConsumer;
 
 import com.netflix.archaius.config.AbstractConfig;
 import com.typesafe.config.Config;
@@ -87,5 +88,10 @@ public class TypesafeConfig extends AbstractConfig {
                 iter.remove();
             }
         };
+    }
+
+    @Override
+    public void forEach(BiConsumer<String, Object> consumer) {
+        // TODO:
     }
 }

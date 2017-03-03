@@ -1,5 +1,9 @@
 package com.netflix.config.resolver;
 
+import com.netflix.archaius.api.annotations.PropertyName;
+import com.netflix.config.api.ConfigurationNode;
+import com.netflix.config.api.TypeResolver;
+
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationHandler;
@@ -9,22 +13,17 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 
-import com.netflix.archaius.api.annotations.PropertyName;
-import com.netflix.config.api.PropertyNode;
-import com.netflix.config.api.PropertyNode.Resolver;
-import com.netflix.config.api.PropertyNode.ResolverLookup;
-
 /**
  * 
  * @param <T>
  * 
  * TODO: @DefaultValue
  */
-public class ProxyResolver<T> implements Resolver<T> {
+public class ProxyTypeResolver<T> implements TypeResolver<T> {
     private Class<T> type;
     private Function<Method, String> nameResolver = DEFAULT_NAME_RESOLVER;
     
-    public ProxyResolver(Class<T> type) {
+    public ProxyTypeResolver(Class<T> type) {
         this.type = type;
     }
     
@@ -33,10 +32,10 @@ public class ProxyResolver<T> implements Resolver<T> {
     }
     
     @Override
-    public T resolve(PropertyNode node, ResolverLookup resolvers) {
+    public T resolve(ConfigurationNode node, Registry resolvers) {
         final Map<Method, MethodInvoker> methods = new HashMap<>();
         for (Method method : type.getDeclaredMethods()) {
-            final PropertyNode childNode = node.getChild(nameResolver.apply(method));
+            final ConfigurationNode childNode = node.getChild(nameResolver.apply(method));
             try {
                 final Object value = resolvers.get(method.getGenericReturnType())
                     .resolve(childNode, resolvers);

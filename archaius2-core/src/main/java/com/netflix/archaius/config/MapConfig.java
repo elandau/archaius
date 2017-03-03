@@ -20,6 +20,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
+import java.util.function.BiConsumer;
 
 /**
  * Config backed by an immutable map.
@@ -105,5 +106,10 @@ public class MapConfig extends AbstractConfig {
     @Override
     public Iterator<String> getKeys() {
         return props.keySet().iterator();
+    }
+
+    @Override
+    public void forEach(BiConsumer<String, Object> consumer) {
+        props.forEach(consumer);
     }
 }

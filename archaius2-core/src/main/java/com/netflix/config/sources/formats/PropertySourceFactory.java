@@ -1,4 +1,12 @@
-package com.netflix.config.sources;
+package com.netflix.config.sources.formats;
+
+import com.netflix.archaius.interpolate.CommonsStrInterpolator;
+import com.netflix.config.api.Bundle;
+import com.netflix.config.api.PropertySource;
+import com.netflix.config.sources.CompositePropertySource;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.net.URL;
 import java.util.ArrayList;
@@ -9,16 +17,6 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.netflix.archaius.api.StrInterpolator;
-import com.netflix.archaius.interpolate.CommonsStrInterpolator;
-import com.netflix.config.api.Bundle;
-import com.netflix.config.api.PropertySource;
-import com.netflix.config.sources.properties.PropertiesToPropertySource;
-import com.netflix.config.sources.yaml.YamlToPropertySource;
-
 /**
  * Function for loading a PropertySource for a resource {@link Bundle}.  The returned PropertySource
  * will contain properties from all found cascade resource name variants for all supported formats. 
@@ -27,14 +25,17 @@ import com.netflix.config.sources.yaml.YamlToPropertySource;
 public class PropertySourceFactory implements Function<Bundle, PropertySource> {
     private static final Logger LOG = LoggerFactory.getLogger(PropertySourceFactory.class);
     
-    private Map<String, Function<URL, PropertySource>> extensionToFactory = new HashMap<>();
-    private List<Function<String, List<URL>>> urlResolvers = new ArrayList<>();
-    private Function<String, String> interpolator;
+    private final Map<String, Function<URL, PropertySource>> extensionToFactory = new HashMap<>();
+    private final List<Function<String, List<URL>>> urlResolvers = new ArrayList<>();
+
+    private final Function<String, String> interpolator;
     
-    public PropertySourceFactory(PropertySource source) {
+    public PropertySourceFactory(PropertySource root) {
+        this.interpolator = CommonsStrInterpolator.forPropertySource(root);
+        
         // Supported file formats
         extensionToFactory.put("properties", new PropertiesToPropertySource());
-        extensionToFactory.put("yml",        new YamlToPropertySource(source));
+        extensionToFactory.put("yml",        new YamlToPropertySource(root));
         
         // Resolvers from name to URL
         urlResolvers.add(name -> {
@@ -44,10 +45,6 @@ public class PropertySourceFactory implements Function<Bundle, PropertySource> {
                 return Collections.emptyList();
             }
         });
-
-        // Interpolator for cascade loading
-        StrInterpolator.Lookup lookup = key -> source.getProperty(key).map(Object::toString).orElse(null);
-        this.interpolator = value -> CommonsStrInterpolator.INSTANCE.create(lookup).resolve((String)value);
     }
     
     @Override

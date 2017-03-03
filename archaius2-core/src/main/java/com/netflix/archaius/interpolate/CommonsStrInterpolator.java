@@ -15,10 +15,13 @@
  */
 package com.netflix.archaius.interpolate;
 
+import java.util.function.Function;
+
 import org.apache.commons.lang3.text.StrLookup;
 import org.apache.commons.lang3.text.StrSubstitutor;
 
 import com.netflix.archaius.api.StrInterpolator;
+import com.netflix.config.api.PropertySource;
 
 public final class CommonsStrInterpolator implements StrInterpolator {
     public static final CommonsStrInterpolator INSTANCE = new CommonsStrInterpolator();
@@ -37,5 +40,10 @@ public final class CommonsStrInterpolator implements StrInterpolator {
               }, "${", "}", '$').setValueDelimiter(":");
 
         return str -> sub.replace(str);
+    }
+    
+    public static Function<String, String> forPropertySource(PropertySource source) {
+        StrInterpolator.Lookup lookup = key -> source.getProperty(key).map(Object::toString).orElse(null);
+        return value -> CommonsStrInterpolator.INSTANCE.create(lookup).resolve((String)value);
     }
 }

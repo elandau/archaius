@@ -8,8 +8,6 @@ import java.util.Optional;
 
 /**
  * Top level configuration API for users to read properties. 
- *
- * @param <PS>
  */
 public interface Configuration {
 
@@ -39,7 +37,7 @@ public interface Configuration {
      * @param key
      * @return
      */
-    public Optional<?> getProperty(String key);
+    public Optional<Object> getProperty(String key);
     
     /**
      * Get a property that has been interpolated and resolved to a specific type
@@ -47,7 +45,7 @@ public interface Configuration {
      * @param type
      * @return
      */
-    public Optional<Object> get(String key, Type type);
+    public <T> Optional<T> get(String key, Type type);
     
     /**
      * Get a property that has been interpolated and resolved to a specific type
@@ -57,7 +55,14 @@ public interface Configuration {
      */
     public <T> Optional<T> get(String key, Class<T> type);
     
+    /**
+     * Collection of all property names
+     * @return
+     */
     Collection<String> getPropertyNames();
     
+    /**
+     * @return True if there are no properties in the Configuration
+     */
     boolean isEmpty();
 }

@@ -1,16 +1,16 @@
 package com.netflix.archaius.visitor;
 
-import java.util.Arrays;
-import java.util.LinkedHashMap;
-import java.util.List;
-
-import org.junit.Assert;
-import org.junit.Test;
-
 import com.netflix.archaius.api.config.CompositeConfig;
 import com.netflix.archaius.api.exceptions.ConfigException;
 import com.netflix.archaius.config.DefaultCompositeConfig;
 import com.netflix.archaius.config.MapConfig;
+
+import org.junit.Assert;
+import org.junit.Test;
+
+import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.List;
 
 public class VisitorTest {
     @Test

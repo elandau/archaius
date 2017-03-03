@@ -55,26 +55,26 @@ public class OrderedPropertySourceTest {
     public void override() {
         LayeredPropertySource source = new LayeredPropertySource("root");
         
-        source.addPropertySource(Layers.LIBRARIES, lib1);
+        source.addPropertySourceAtLayer(Layers.LIBRARIES, lib1);
         Assert.assertEquals("lib1", source.getProperty("foo.bar").get());
 
-        source.addPropertySource(Layers.LIBRARIES, lib2);
+        source.addPropertySourceAtLayer(Layers.LIBRARIES, lib2);
         Assert.assertEquals("lib2", source.getProperty("foo.bar").get());
         
-        source.addPropertySource(Layers.APPLICATION, application);
+        source.addPropertySourceAtLayer(Layers.APPLICATION, application);
         Assert.assertEquals("application", source.getProperty("foo.bar").get());
         
-        source.addPropertySource(Layers.OVERRIDE, override);
+        source.addPropertySourceAtLayer(Layers.OVERRIDE, override);
         Assert.assertEquals("override", source.getProperty("foo.bar").get());
     }
 
     @Test
     public void namespaced() {
         LayeredPropertySource source = new LayeredPropertySource("root");
-        source.addPropertySource(Layers.LIBRARIES, lib1);
-        source.addPropertySource(Layers.LIBRARIES, lib2);
-        source.addPropertySource(Layers.APPLICATION, application);
-        source.addPropertySource(Layers.OVERRIDE, override);
+        source.addPropertySourceAtLayer(Layers.LIBRARIES, lib1);
+        source.addPropertySourceAtLayer(Layers.LIBRARIES, lib2);
+        source.addPropertySourceAtLayer(Layers.APPLICATION, application);
+        source.addPropertySourceAtLayer(Layers.OVERRIDE, override);
         
 //        Assert.assertEquals(
 //            Arrays.asList("other=default", "bar=override"), 
@@ -88,8 +88,8 @@ public class OrderedPropertySourceTest {
         MutablePropertySource mutable = new MutablePropertySource("settable");
         
         LayeredPropertySource source = new LayeredPropertySource("test");
-        source.addPropertySource(Layers.APPLICATION, application);
-        source.addPropertySource(Layers.OVERRIDE, mutable);
+        source.addPropertySourceAtLayer(Layers.APPLICATION, application);
+        source.addPropertySourceAtLayer(Layers.OVERRIDE, mutable);
         
         Assert.assertEquals("lib1", source.getProperty("foo.bar").get());
         
@@ -101,14 +101,13 @@ public class OrderedPropertySourceTest {
     @Test
     public void listSources() {
         LayeredPropertySource source = new LayeredPropertySource("root");
-        source.addPropertySource(Layers.LIBRARIES, lib1);
-        source.addPropertySource(Layers.LIBRARIES, lib2);
-        source.addPropertySource(Layers.APPLICATION, application);
-        source.addPropertySource(Layers.OVERRIDE, override);
+        source.addPropertySourceAtLayer(Layers.LIBRARIES, lib1);
+        source.addPropertySourceAtLayer(Layers.LIBRARIES, lib2);
+        source.addPropertySourceAtLayer(Layers.APPLICATION, application);
+        source.addPropertySourceAtLayer(Layers.OVERRIDE, override);
 
         Map<String, Object> sources = new HashMap<>();
-        source
-            .flattened()
+        source.flattened()
             .forEach(s -> s.getProperty("foo.bar")
                 .ifPresent(value -> sources.put(s.getName(), value)));
         

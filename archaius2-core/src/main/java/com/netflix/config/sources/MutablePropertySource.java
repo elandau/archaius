@@ -70,24 +70,6 @@ public class MutablePropertySource implements PropertySource {
         return Optional.ofNullable(properties.get(name));
     }
 
-//    @Override
-//    public Stream<Entry<String, Object>> stream() {
-//        return properties.entrySet().stream();
-//    }
-//
-//    @Override
-//    public Stream<Entry<String, Object>> stream(String prefix) {
-//        if (!prefix.endsWith(".")) {
-//            return stream(prefix + ".");
-//        } else {
-//            return properties
-//                .subMap(prefix, prefix + Character.MAX_VALUE)
-//                .entrySet()
-//                .stream()
-//                .map(PropertySourceUtils.stripPrefix(prefix));
-//        }
-//    }
-
     @Override
     public Collection<String> getKeys() {
         return properties.keySet();

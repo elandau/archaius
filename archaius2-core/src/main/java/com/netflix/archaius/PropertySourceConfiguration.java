@@ -1,22 +1,22 @@
 package com.netflix.archaius;
 
+import com.netflix.config.api.Configuration;
+import com.netflix.config.api.ConfigurationNode;
+import com.netflix.config.api.PropertySource;
+import com.netflix.config.api.TypeResolver.Registry;
+import com.netflix.config.resolver.ResolverLookupImpl;
+import com.netflix.config.sources.InterpolatingPropertySource;
+import com.netflix.config.sources.PropertySourcePropertyNode;
+
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Collection;
 import java.util.Optional;
 
-import com.netflix.config.api.Configuration;
-import com.netflix.config.api.PropertyNode;
-import com.netflix.config.api.PropertySource;
-import com.netflix.config.api.PropertyNode.ResolverLookup;
-import com.netflix.config.resolver.ResolverLookupImpl;
-import com.netflix.config.sources.InterpolatingPropertySource;
-import com.netflix.config.sources.PropertySourcePropertyNode;
-
 public class PropertySourceConfiguration implements Configuration {
 
-    private final ResolverLookup lookup;
+    private final Registry lookup;
     private final PropertySource source;
     private final PropertySource interpolated;
     
@@ -77,15 +77,15 @@ public class PropertySourceConfiguration implements Configuration {
     }
 
     @Override
-    public Optional<?> getProperty(String key) {
+    public Optional<Object> getProperty(String key) {
         return source.getProperty(key);
     }
     
     @Override
-    public Optional<Object> get(String key, Type type) {
+    public <T> Optional<T> get(String key, Type type) {
         try {
-            PropertyNode node = new PropertySourcePropertyNode(interpolated.snapshot()).getChild(key);
-            return Optional.ofNullable(lookup.get(type).resolve(node, lookup));
+            ConfigurationNode node = new PropertySourcePropertyNode(interpolated.snapshot()).getChild(key);
+            return (Optional<T>) Optional.ofNullable(lookup.get(type).resolve(node, lookup));
         } catch (RuntimeException e) {
             throw new RuntimeException("Failed to get property " + key + " of type " + type, e);
         }
@@ -94,8 +94,8 @@ public class PropertySourceConfiguration implements Configuration {
     @Override
     public <T> Optional<T> get(String key, Class<T> type) {
         try {
-            PropertyNode node = new PropertySourcePropertyNode(interpolated.snapshot()).getChild(key);
-            return Optional.ofNullable(lookup.get(type).resolve(node, lookup));
+            ConfigurationNode node = new PropertySourcePropertyNode(interpolated.snapshot()).getChild(key);
+            return Optional.ofNullable(lookup.forType(type).resolve(node, lookup));
         } catch (RuntimeException e) {
             throw new RuntimeException("Failed to get property " + key + " of type " + type, e);
         }

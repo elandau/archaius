@@ -1,5 +1,8 @@
 package com.netflix.config.sources;
 
+import com.netflix.archaius.internal.Preconditions;
+import com.netflix.config.api.PropertySource;
+
 import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
@@ -9,16 +12,14 @@ import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 
-import com.netflix.archaius.internal.Preconditions;
-import com.netflix.config.api.PropertySource;
-
 /**
- * Immutable PropertySource with a builder for conveniently creating a property source
+ * Immutable PropertySource with a builder for convenient creation. Most files are loaded
+ * into an instance of ImmutablePropertySource.
  */
 public class ImmutablePropertySource implements PropertySource {
     protected SortedMap<String, Object> properties;
     protected String name;
-    
+    protected volatile Integer hashCode = null;
     private static final AtomicInteger counter = new AtomicInteger();
 
     /**
@@ -81,9 +82,9 @@ public class ImmutablePropertySource implements PropertySource {
         return new Builder();
     }
     
-    ImmutablePropertySource(String name, SortedMap<String, Object> values) {
+    ImmutablePropertySource(String name, SortedMap<String, Object> properties) {
         this.name = name;
-        this.properties = values;
+        this.properties = properties;
     }
     
     @Override
@@ -116,24 +117,6 @@ public class ImmutablePropertySource implements PropertySource {
         return properties.size();
     }
     
-
-//    @Override
-//    public Stream<Entry<String, Object>> stream() {
-//        return properties.entrySet().stream();
-//    }
-//
-//    @Override
-//    public Stream<Entry<String, Object>> stream(String prefix) {
-//        if (!prefix.endsWith(".")) {
-//            return stream(prefix + ".");
-//        } else {
-//            return properties.subMap(prefix, prefix + Character.MAX_VALUE)
-//                .entrySet()
-//                .stream()
-//                .map(PropertySourceUtils.stripPrefix(prefix));
-//        }
-//    }
-
     @Override
     public PropertySource snapshot() {
         return this;
@@ -142,5 +125,13 @@ public class ImmutablePropertySource implements PropertySource {
     @Override
     public void forEach(BiConsumer<String, Object> consumer) {
         properties.forEach(consumer);
+    }
+    
+    @Override
+    public int hashCode() {
+        if (hashCode == null) {
+            hashCode = properties.hashCode();
+        }
+        return hashCode;
     }
 }

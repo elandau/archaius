@@ -31,6 +31,7 @@ import java.util.concurrent.Callable;
 
 import com.netflix.archaius.config.polling.PollingResponse;
 
+@Deprecated
 public class URLConfigReader implements Callable<PollingResponse> {
     private final URL[] configUrls;
 

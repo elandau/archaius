@@ -1,40 +1,39 @@
 package com.netflix.config.resolver;
 
+import com.netflix.config.api.ConfigurationNode;
+import com.netflix.config.api.TypeResolver;
+
 import java.lang.reflect.Type;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
-import com.netflix.config.api.PropertyNode;
-import com.netflix.config.api.PropertyNode.Resolver;
-import com.netflix.config.api.PropertyNode.ResolverLookup;
-
-public class ListResolver implements Resolver<List<?>> {
+public class SetTypeResolver implements TypeResolver<Set<?>> {
 
     private Type elementType;
     
-    public ListResolver(Type elementType) {
+    public SetTypeResolver(Type elementType) {
         this.elementType = elementType;
     }
     
     @Override
-    public List<?> resolve(PropertyNode node, ResolverLookup resolvers) {
+    public Set<?> resolve(ConfigurationNode node, Registry resolvers) {
         return node.getValue().map(value -> {
             if (value instanceof String) {
-                return Collections.unmodifiableList(Arrays.asList(((String)value).split(","))
+                return Collections.unmodifiableSet(Arrays.asList(((String)value).split(","))
                     .stream()
-                    .map(element -> resolvers.get(elementType).resolve(new PropertyNode() {
+                    .map(element -> resolvers.get(elementType).resolve(new ConfigurationNode() {
                         @Override
                         public Optional<?> getValue() {
                             return Optional.of(element);
                         }
                     }, resolvers))
-                    .collect(Collectors.toList()));
+                    .collect(Collectors.toSet()));
             } else {
                 throw new IllegalArgumentException();
             }
-        }).orElse(Collections.emptyList());
+        }).orElse(Collections.emptySet());
     }
 }

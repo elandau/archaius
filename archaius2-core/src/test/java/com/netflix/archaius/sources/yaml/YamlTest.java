@@ -8,8 +8,9 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import com.netflix.config.api.PropertySource;
+import com.netflix.config.sources.EmptyPropertySource;
 import com.netflix.config.sources.ImmutablePropertySource;
-import com.netflix.config.sources.yaml.YamlToPropertySource;
+import com.netflix.config.sources.formats.YamlToPropertySource;
 
 public class YamlTest {
     @Test
@@ -62,7 +63,7 @@ public class YamlTest {
         Stream.of("missing.yml")
             .map(ClassLoader::getSystemResource)
             .filter(url -> url != null)
-            .map(new YamlToPropertySource())
+            .map(new YamlToPropertySource(EmptyPropertySource.INSTANCE))
             .forEach(source -> source.forEach((key, value) -> properties.put(key, value)));
         
         Assert.assertTrue(properties.isEmpty());

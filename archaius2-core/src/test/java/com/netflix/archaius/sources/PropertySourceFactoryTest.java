@@ -7,7 +7,7 @@ import org.junit.Test;
 import com.netflix.config.api.Bundle;
 import com.netflix.config.api.PropertySource;
 import com.netflix.config.sources.ImmutablePropertySource;
-import com.netflix.config.sources.PropertySourceFactory;
+import com.netflix.config.sources.formats.PropertySourceFactory;
 
 public class PropertySourceFactoryTest {
     @Test

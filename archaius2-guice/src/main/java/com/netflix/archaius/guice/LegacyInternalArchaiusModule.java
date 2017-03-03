@@ -13,20 +13,30 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Inject;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
-import com.netflix.archaius.DefaultConfigManager;
+import com.netflix.archaius.ConfigProxyFactory;
+import com.netflix.archaius.DefaultDecoder;
+import com.netflix.archaius.DefaultPropertyFactory;
 import com.netflix.archaius.api.CascadeStrategy;
 import com.netflix.archaius.api.Config;
-import com.netflix.archaius.api.ConfigLoader;
-import com.netflix.archaius.api.ConfigManager;
-import com.netflix.archaius.api.config.CompositeConfig;
+import com.netflix.archaius.api.Decoder;
+import com.netflix.archaius.api.PropertyFactory;
+import com.netflix.archaius.api.config.SettableConfig;
 import com.netflix.archaius.api.inject.DefaultLayer;
-import com.netflix.archaius.api.inject.LibrariesLayer;
 import com.netflix.archaius.api.inject.RemoteLayer;
+import com.netflix.archaius.api.inject.RuntimeLayer;
+import com.netflix.archaius.config.ConfigToPropertySource;
+import com.netflix.archaius.config.ConfigurationToConfigAdapter;
+import com.netflix.archaius.config.DefaultSettableConfig;
+import com.netflix.config.api.Bundle;
+import com.netflix.config.api.Configuration;
 import com.netflix.config.api.Layers;
+import com.netflix.config.sources.LayeredPropertySource;
+import com.netflix.config.sources.formats.PropertySourceFactory;
 import com.netflix.governator.providers.Advises;
 
 public final class LegacyInternalArchaiusModule extends AbstractModule {
     public static final String CONFIG_NAME_KEY = "archaius.config.name";
+    
     public static final int LEGACY_ADVICE_ORDER = 10;
     
     private final static AtomicInteger uniqueNameCounter = new AtomicInteger();
@@ -91,49 +101,67 @@ public final class LegacyInternalArchaiusModule extends AbstractModule {
 
     @Advises(order = LEGACY_ADVICE_ORDER)
     @Singleton
-    UnaryOperator<DefaultConfigManager.Builder> adviseOptionalOverrideLayer(ConfigParameters params) throws Exception {
-        return builder -> {
-            params.getCascadeStrategy()
-                .ifPresent(strategy -> builder.withCascadeStrategy(strategy));
-            
-            params.getConfigName().ifPresent(name -> builder.withConfigName(name));
-            
-            params.getOverrideResources()
-                .forEach(resourceName -> builder.addResourceToLayer(Layers.OVERRIDE, resourceName));
-            
-            params.getApplicationOverride()
-                .ifPresent(provider -> builder.addConfigToLayer(Layers.APPLICATION_OVERRIDE, "", provider.get()));
+    UnaryOperator<LayeredPropertySource> adviseOptionalOverrideLayer(ConfigParameters params) throws Exception {
+        return source -> {
+            PropertySourceFactory factory = new PropertySourceFactory(source);
             
             params.getDefaultConfigs()
-                .forEach(config -> builder.addConfigToLayer(Layers.ENVIRONMENT_DEFAULTS, "", config));
+                .forEach(config -> source.addPropertySourceAtLayer(Layers.ENVIRONMENT_DEFAULTS, new ConfigToPropertySource("", config)));
             
-            params.getRemoteLayer()
-                .ifPresent(provider -> builder.adviseLayer(Layers.REMOTE_OVERRIDE, (config) ->
-                        config.addConfigToLayer(Layers.REMOTE_OVERRIDE, "", provider.get())));
+            params.getOverrideResources()
+                .forEach(resourceName -> source.addPropertySourceAtLayer(Layers.OVERRIDE, factory.apply(new Bundle(resourceName, null /* TODO */))));
             
-            return builder;
+            String applicationName = params.getConfigName().orElse("application");
+            source.addPropertySourceAtLayer(Layers.APPLICATION, factory.apply(new Bundle(applicationName, null /* TODO */)));
+            
+            params.getApplicationOverride()
+                .ifPresent(provider -> source.addPropertySourceAtLayer(Layers.APPLICATION_OVERRIDE, new ConfigToPropertySource("", provider.get())));
+            
+//            params.getRemoteLayer()
+//                .ifPresent(provider -> source.addPropertySource(Layers.REMOTE_OVERRIDE, (config) ->
+//                        config.addConfigToLayer(Layers.REMOTE_OVERRIDE, "", provider.get())));
+            
+            return source;
         };
+    }
+
+//    @Provides
+//    @Singleton
+//    @Raw
+//    @Deprecated
+//    Config getRawConfig(@Raw DefaultConfigManager configManager) {
+//        return configManager;
+//    }
+    
+    @Provides
+    @Singleton
+    Config getConfiguration(Configuration configuration) {
+        return new ConfigurationToConfigAdapter(configuration);
+    }
+    
+    @Provides
+    @Singleton
+    @RuntimeLayer
+    SettableConfig getSettableConfig() {
+        return new DefaultSettableConfig();
+    }
+    
+    @Provides
+    @Singleton
+    PropertyFactory getPropertyFactory(Config config) {
+        return DefaultPropertyFactory.from(config);
     }
 
     @Provides
     @Singleton
-    @LibrariesLayer
-    CompositeConfig getLegacyLibrariesLayerConfig(ConfigManager configManager) {
-        return new LegacyLibraryLayerCompositeConfig(configManager);
+    ConfigProxyFactory getProxyFactory(Config config, Decoder decoder, PropertyFactory factory) {
+        return new ConfigProxyFactory(config, decoder, factory);
     }
     
     @Provides
     @Singleton
-    @Raw
-    @Deprecated
-    Config getRawConfig(@Raw DefaultConfigManager configManager) {
-        return configManager;
-    }
-    
-    @Provides
-    @Singleton
-    ConfigLoader getConfigLoader(ConfigManager configManager) {
-        return configManager.getConfigLoader();
+    Decoder getDecoder() {
+        return DefaultDecoder.INSTANCE;
     }
     
     @Override

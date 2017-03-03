@@ -1,13 +1,13 @@
 package com.netflix.archaius.sources.properties;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.stream.Stream;
+import com.netflix.config.sources.formats.PropertiesToPropertySource;
 
 import org.junit.Assert;
 import org.junit.Test;
 
-import com.netflix.config.sources.properties.PropertiesToPropertySource;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.stream.Stream;
 
 public class PropertiesTest {
     @Test

@@ -13,6 +13,8 @@ import com.netflix.config.api.PropertySource;
 
 /**
  * Immutable property source that is a composite of multiple {@link PropertySource}s.
+ * 
+ * Each instance maintains a cached version of all of its children.
  */
 public class CompositePropertySource extends ImmutablePropertySource {
     private final List<PropertySource> sources;

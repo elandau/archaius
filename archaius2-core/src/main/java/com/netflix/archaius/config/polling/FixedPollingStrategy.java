@@ -15,17 +15,17 @@
  */
 package com.netflix.archaius.config.polling;
 
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import com.netflix.archaius.api.config.PollingStrategy;
+import com.netflix.archaius.util.ThreadFactories;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.netflix.archaius.api.config.PollingStrategy;
-import com.netflix.archaius.util.Futures;
-import com.netflix.archaius.util.ThreadFactories;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class FixedPollingStrategy implements PollingStrategy {
     private static final Logger LOG = LoggerFactory.getLogger(FixedPollingStrategy.class);
@@ -50,12 +50,14 @@ public class FixedPollingStrategy implements PollingStrategy {
             } 
             catch (Exception e) {
                 try {
-                    LOG.warn("Fail to poll the polling source", e);
+                    LOG.warn("Failed to poll the polling source", e);
                     units.sleep(interval);
                 } 
                 catch (InterruptedException e1) {
                     Thread.currentThread().interrupt();
-                    return Futures.immediateFailure(e);
+                    CompletableFuture<?> future = new CompletableFuture();
+                    future.completeExceptionally(e);
+                    return future;
                 }
             }
         }

@@ -19,6 +19,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Iterator;
 import java.util.List;
+import java.util.function.BiConsumer;
 
 /**
  * Core API for reading a configuration.  The API is read only.
@@ -162,4 +163,6 @@ public interface Config {
      * @param visitor
      */
     <T> T accept(Visitor<T> visitor);
+    
+    void forEach(BiConsumer<String, Object> consumer);
 }

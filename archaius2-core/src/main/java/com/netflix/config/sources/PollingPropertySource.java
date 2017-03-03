@@ -1,9 +1,9 @@
 package com.netflix.config.sources;
 
-import java.util.function.Consumer;
-
 import com.netflix.archaius.internal.WeakReferenceSet;
 import com.netflix.config.api.PropertySource;
+
+import java.util.function.Consumer;
 
 /**
  * 

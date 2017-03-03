@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.BiConsumer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -121,5 +122,10 @@ public class PollingDynamicConfig extends AbstractConfig {
     @Override
     public Iterator<String> getKeys() {
         return current.keySet().iterator();
+    }
+
+    @Override
+    public void forEach(BiConsumer<String, Object> consumer) {
+        current.forEach(consumer);
     }
 }

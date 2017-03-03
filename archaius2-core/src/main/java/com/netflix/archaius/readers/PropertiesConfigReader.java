@@ -15,11 +15,8 @@
  */
 package com.netflix.archaius.readers;
 
-import java.io.File;
 import java.io.IOException;
 import java.net.URL;
-import java.net.URLDecoder;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -27,33 +24,14 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.netflix.archaius.api.Config;
-import com.netflix.archaius.api.ConfigReader;
 import com.netflix.archaius.api.StrInterpolator;
-import com.netflix.archaius.api.exceptions.ConfigException;
-import com.netflix.archaius.config.MapConfig;
 
-public class PropertiesConfigReader implements ConfigReader {
+@Deprecated
+public class PropertiesConfigReader {
     private static final Logger LOG = LoggerFactory.getLogger(PropertiesConfigReader.class);
     
     private static final String INCLUDE_KEY = "@next";
     private static final String SUFFIX = ".properties";
-    
-    @Override
-    public Config load(ClassLoader loader, String resourceName, StrInterpolator strInterpolator, StrInterpolator.Lookup lookup) throws ConfigException {
-        URL url = getResource(loader, resourceName);
-        if (url == null) {
-            throw new ConfigException("Unable to resolve URL for resource " + resourceName);
-        }
-        return load(loader, url, strInterpolator, lookup);
-    }
-
-    @Override
-    public Config load(ClassLoader loader, URL url, StrInterpolator strInterpolator, StrInterpolator.Lookup lookup) throws ConfigException {
-        Properties props = new Properties();
-        internalLoad(props, new HashSet<String>(), loader, url, strInterpolator, lookup);
-        return MapConfig.from(props);
-    }
     
     private void internalLoad(Properties props, Set<String> seenUrls, ClassLoader loader, URL url, StrInterpolator strInterpolator, StrInterpolator.Lookup lookup) {
         LOG.debug("Attempting to load : {}", url.toExternalForm());
@@ -74,10 +52,10 @@ public class PropertiesConfigReader implements ConfigReader {
                 if (next != null) {
                     p.remove(INCLUDE_KEY);
                     for (String urlString : next.split(",")) {
-                        URL nextUrl = getResource(loader, strInterpolator.create(lookup).resolve(urlString));
-                        if (nextUrl != null) {
-                            internalLoad(props, seenUrls, loader, nextUrl, strInterpolator, lookup);
-                        }
+//                        URL nextUrl = getResource(loader, strInterpolator.create(lookup).resolve(urlString));
+//                        if (nextUrl != null) {
+//                            internalLoad(props, seenUrls, loader, nextUrl, strInterpolator, lookup);
+//                        }
                     }
                 }
             } catch (IOException e) {
@@ -87,44 +65,5 @@ public class PropertiesConfigReader implements ConfigReader {
         else {
             LOG.debug("Circular dependency trying to load url : {}", url.toExternalForm());
         }
-    }
-
-    @Override
-    public boolean canLoad(ClassLoader loader, String name) {
-        return getResource(loader, name) != null;
-    }
-
-    @Override
-    public boolean canLoad(ClassLoader loader, URL uri) {
-        return uri.getPath().endsWith(SUFFIX);
-    }
-
-    private static URL getResource(ClassLoader loader, String resourceName) {
-        if (!resourceName.endsWith(SUFFIX)) {
-            resourceName += SUFFIX;
-        }
-        
-        URL url = null;
-        // attempt to load from the context classpath
-        if (loader == null) {
-            loader = Thread.currentThread().getContextClassLoader();
-        }
-        
-        if (loader != null) {
-            url = loader.getResource(resourceName);
-        }
-        if (url == null) {
-            // attempt to load from the system classpath
-            url = ClassLoader.getSystemResource(resourceName);
-        }
-        if (url == null) {
-            try {
-                resourceName = URLDecoder.decode(resourceName, "UTF-8");
-                url = (new File(resourceName)).toURI().toURL();
-            } catch (Exception e) {
-
-            }
-        }
-        return url;
     }
 }

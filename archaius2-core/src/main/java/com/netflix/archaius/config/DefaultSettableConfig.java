@@ -20,6 +20,7 @@ import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.function.BiConsumer;
 
 import com.netflix.archaius.api.Config;
 import com.netflix.archaius.api.config.SettableConfig;
@@ -78,5 +79,10 @@ public class DefaultSettableConfig extends AbstractConfig implements SettableCon
                 setProperty(key, config.getRawProperty(key));
             }
         }
+    }
+
+    @Override
+    public void forEach(BiConsumer<String, Object> consumer) {
+        props.forEach(consumer);
     }
 }

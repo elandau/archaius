@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Iterator;
 import java.util.List;
+import java.util.function.BiConsumer;
 
 import com.netflix.archaius.api.Config;
 import com.netflix.archaius.api.ConfigListener;
@@ -212,5 +213,11 @@ public class ConfigurationToConfigAdapter implements Config {
     @Override
     public <T> T accept(Visitor<T> visitor) {
         throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void forEach(BiConsumer<String, Object> consumer) {
+        // TODO Auto-generated method stub
+        
     }
 }

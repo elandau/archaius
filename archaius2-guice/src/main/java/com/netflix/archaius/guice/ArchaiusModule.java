@@ -27,12 +27,16 @@ import com.google.inject.Singleton;
 import com.google.inject.binder.LinkedBindingBuilder;
 import com.google.inject.multibindings.Multibinder;
 import com.google.inject.name.Names;
-import com.netflix.archaius.DefaultConfigManager;
 import com.netflix.archaius.api.CascadeStrategy;
 import com.netflix.archaius.api.Config;
 import com.netflix.archaius.api.inject.DefaultLayer;
 import com.netflix.archaius.api.inject.RemoteLayer;
+import com.netflix.archaius.config.ConfigToPropertySource;
+import com.netflix.config.api.Layer;
 import com.netflix.config.api.Layers;
+import com.netflix.config.api.PropertySource;
+import com.netflix.config.sources.ImmutablePropertySource;
+import com.netflix.config.sources.LayeredPropertySource;
 import com.netflix.governator.providers.Advises;
 
 /**
@@ -78,45 +82,43 @@ import com.netflix.governator.providers.Advises;
 public class ArchaiusModule extends AbstractModule {
     public static final int DEFAULT = 0;
     
-    private List<Consumer<DefaultConfigManager.Builder>> consumers = new ArrayList<>();
     private Class<? extends CascadeStrategy> cascadeStrategy = null;
+    private String configName = null;
+    private final List<Consumer<LayeredPropertySource>> overrides = new ArrayList<>();
     
     public ArchaiusModule withCascadeStrategy(Class<? extends CascadeStrategy> cascadeStrategy) {
         this.cascadeStrategy = cascadeStrategy;
         return this;
     }
 
-    @Deprecated
-    public ArchaiusModule withConfigName(String value) {
-        consumers.add(builder -> builder.withConfigName(value));
+    public ArchaiusModule withConfigName(String configName) {
+        this.configName = configName;
         return this;
     }
     
-    @Deprecated
+    public ArchaiusModule withPropertySource(Layer layer, PropertySource source) {
+        overrides.add((root) -> root.addPropertySourceAtLayer(layer, source));
+        return this;
+    }
+    
     public ArchaiusModule withApplicationOverrides(Properties props) {
-        consumers.add(builder -> builder.addConfigToLayer(Layers.APPLICATION_OVERRIDE, "override", props));
+        return withPropertySource(
+                Layers.APPLICATION_OVERRIDE, 
+                ImmutablePropertySource.builder().putAll(props).build());
+    }
+    
+    public ArchaiusModule configure(Consumer<LayeredPropertySource> consumer) {
+        overrides.add(consumer);
         return this;
     }
     
     @Deprecated
     public ArchaiusModule withApplicationOverrides(Config config) {
-        consumers.add(builder -> builder.addConfigToLayer(Layers.APPLICATION_OVERRIDE, "override",  config));
-        return this;
+        return withPropertySource(
+                Layers.APPLICATION_OVERRIDE, 
+                new ConfigToPropertySource("", config));
     }
     
-    /**
-     * Mechanism to customize the DefaultConfigManager.Builder prior to build() being called.
-     * Multiple consumers may be added and they are in invoked in the order in which they were added.
-     * Note that consumers are allocated outside of the injector but do support field injection.
-     * 
-     * @param consumer - Consumer that will be applied 
-     * @return Chainable ArchaiusModule
-     */
-    public ArchaiusModule configure(Consumer<DefaultConfigManager.Builder> consumer) {
-        consumers.add(consumer);
-        return this;
-    }
-  
     /**
      * Customize the filename for the main application configuration.  The default filename is
      * 'application'.  
@@ -279,13 +281,10 @@ public class ArchaiusModule extends AbstractModule {
     
     @Advises
     @Singleton
-    UnaryOperator<DefaultConfigManager.Builder> applyConsumers(Injector injector) throws Exception {
-        return builder -> {
-            consumers.forEach(consumer -> {
-                injector.injectMembers(consumer);
-                consumer.accept(builder);
-            });
-            return builder;
+    UnaryOperator<LayeredPropertySource> applyConsumers(Injector injector) throws Exception {
+        return source -> {
+            overrides.forEach(override -> override.accept(source));
+            return source;
         };
     }    
 }

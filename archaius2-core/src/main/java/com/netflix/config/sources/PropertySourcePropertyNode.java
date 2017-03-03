@@ -5,10 +5,10 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
-import com.netflix.config.api.PropertyNode;
+import com.netflix.config.api.ConfigurationNode;
 import com.netflix.config.api.PropertySource;
 
-public class PropertySourcePropertyNode implements PropertyNode {
+public class PropertySourcePropertyNode implements ConfigurationNode {
     private String path = "";
     private PropertySource source;
     
@@ -27,7 +27,7 @@ public class PropertySourcePropertyNode implements PropertyNode {
     }
 
     @Override
-    public PropertyNode getChild(String key) {
+    public ConfigurationNode getChild(String key) {
         return new PropertySourcePropertyNode(source, path.isEmpty() ? key : path + "." + key);
     }
     

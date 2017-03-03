@@ -1,29 +1,29 @@
 package com.netflix.archaius.guice;
 
-import java.util.Arrays;
-import java.util.stream.Stream;
-
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import com.google.inject.AbstractModule;
+import com.google.inject.Injector;
+import com.google.inject.Module;
+import com.google.inject.matcher.Matchers;
+import com.google.inject.spi.ProvisionListener;
+import com.netflix.archaius.ConfigMapper;
+import com.netflix.archaius.api.CascadeStrategy;
+import com.netflix.archaius.api.StrInterpolator;
+import com.netflix.archaius.api.annotations.ConfigurationSource;
+import com.netflix.archaius.cascade.NoCascadeStrategy;
+import com.netflix.archaius.interpolate.CommonsStrInterpolator;
+import com.netflix.config.api.Bundle;
+import com.netflix.config.api.Layers;
+import com.netflix.config.api.PropertySource;
+import com.netflix.config.sources.LayeredPropertySource;
+import com.netflix.config.sources.formats.PropertySourceFactory;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.inject.Injector;
-import com.google.inject.Key;
-import com.google.inject.ProvisionException;
-import com.google.inject.name.Names;
-import com.google.inject.spi.ProvisionListener;
-import com.netflix.archaius.ConfigMapper;
-import com.netflix.archaius.api.CascadeStrategy;
-import com.netflix.archaius.api.IoCContainer;
-import com.netflix.archaius.api.StrInterpolator;
-import com.netflix.archaius.api.annotations.Configuration;
-import com.netflix.archaius.api.annotations.ConfigurationSource;
-import com.netflix.archaius.api.exceptions.ConfigException;
-import com.netflix.archaius.interpolate.CommonsStrInterpolator;
-import com.netflix.archaius.sources.LayeredPropertySource;
-import com.netflix.config.api.Layers;
+import java.util.Arrays;
+
+import javax.inject.Inject;
+import javax.inject.Singleton;
 
 @Singleton
 public class ConfigurationInjectingListener implements ProvisionListener {
@@ -32,36 +32,30 @@ public class ConfigurationInjectingListener implements ProvisionListener {
     @Inject
     private Injector injector;
     
-    @Inject
-    private Configuration config;
+    @com.google.inject.Inject(optional=true)
+    private CascadeStrategy cascadeStrategy = new NoCascadeStrategy();
     
-    @Inject
-    private CascadeStrategy cascadeStrategy;
-    
-    private LayeredPropertySource propertySource;
-    
+    private StrInterpolator.Lookup lookup;
     private StrInterpolator interpolator;
     
+    private LayeredPropertySource mainSource;
+    private PropertySourceFactory factory;
+    private ConfigMapper mapper = new ConfigMapper();
+    
     @Inject
-    private void setLayeredPropertySource(LayeredPropertySource propertySource) {
-        this.propertySource = propertySource;
-        StrInterpolator.Lookup lookup = key -> delegate.getProperty(key).map(Object::toString).orElse(null);
-        this.interpolator = value -> {
-            if (value.getClass() == String.class) {
-                return CommonsStrInterpolator.INSTANCE.create(lookup).resolve((String)value);
-            }
-            return value;
-        };
+    private void setLayeredPropertySource(LayeredPropertySource mainSource) {
+        this.mainSource = mainSource;
+        
+        this.factory = new PropertySourceFactory(mainSource);
+        
+        StrInterpolator.Lookup lookup = key -> mainSource.getProperty(key).map(Object::toString).orElse(null);
+        this.interpolator = value -> CommonsStrInterpolator.INSTANCE.create(lookup);
     }    
     
     @Inject
     public static void init(ConfigurationInjectingListener listener) {
         LOG.info("Initializing ConfigurationInjectingListener");
-        
-
     }
-    
-    private ConfigMapper mapper = new ConfigMapper();
     
     @Override
     public <T> void onProvision(ProvisionInvocation<T> provision) {
@@ -79,51 +73,63 @@ public class ConfigurationInjectingListener implements ProvisionListener {
             
             Arrays.asList(source.value()).forEach(bundleName -> {
                 LOG.debug("Trying to loading configuration bundle {}", bundleName);
-                    Stream.of(source.cascading() != ConfigurationSource.NullCascadeStrategy.class
-                            ? injector.getInstance(source.cascading())
-                            : cascadeStrategy)
-                        .flatMap(strategy -> strategy.generate(bundleName, , lookup));
-                            
-                    });
+                
+                Bundle bundle = new Bundle(bundleName, (name) -> {
+                    CascadeStrategy strategy = source.cascading() != ConfigurationSource.NullCascadeStrategy.class
+                        ? injector.getInstance(source.cascading())
+                        : cascadeStrategy;
+                    return strategy.generate(bundleName, interpolator, lookup);
+                });
+                
+                PropertySource loadedPropertySource = factory.apply(bundle);
+                mainSource.addPropertySourceAtLayer(Layers.LIBRARIES, loadedPropertySource);
             });
-            for (String resourceName : source.value()) {
-                
-                
-                try {
-                    
-                    propertySource.addPropertySource(Layers.LIBRARIES, resourceName, loader -> {
-                        if (source.cascading() != ConfigurationSource.NullCascadeStrategy.class) {
-                            loader.withCascadeStrategy(injector.getInstance(source.cascading()));
-                        }
-                        return loader;
-                    });
-                } catch (ConfigException e) {
-                    throw new ProvisionException("Unable to load configuration for " + resourceName, e);
-                }
-            }
         }
         
         //
         // Configuration binding
         //
-        Configuration configAnnot = clazz.getAnnotation(Configuration.class);
-        if (configAnnot != null) {
-            if (injector == null) {
-                LOG.warn("Can't inject configuration into {} until ConfigurationInjectingListener has been initialized", clazz.getName());
-                return;
+//        Configuration configAnnot = clazz.getAnnotation(Configuration.class);
+//        if (configAnnot != null) {
+//            if (injector == null) {
+//                LOG.warn("Can't inject configuration into {} until ConfigurationInjectingListener has been initialized", clazz.getName());
+//                return;
+//            }
+//            
+//            try {
+//                mapper.mapConfig(provision.provision(), config, new IoCContainer() {
+//                    @Override
+//                    public <S> S getInstance(String name, Class<S> type) {
+//                        return injector.getInstance(Key.get(type, Names.named(name)));
+//                    }
+//                });
+//            }
+//            catch (Exception e) {
+//                throw new ProvisionException("Unable to bind configuration to " + clazz, e);
+//            }
+//        }        
+    }
+    
+    public static Module asModule() {
+        return new AbstractModule() {
+            @Override
+            protected void configure() {
+                ConfigurationInjectingListener listener = new ConfigurationInjectingListener();
+                requestInjection(listener);
+                bind(ConfigurationInjectingListener.class).toInstance(listener);
+                requestStaticInjection(ConfigurationInjectingListener.class);
+                bindListener(Matchers.any(), listener);
             }
             
-            try {
-                mapper.mapConfig(provision.provision(), config, new IoCContainer() {
-                    @Override
-                    public <S> S getInstance(String name, Class<S> type) {
-                        return injector.getInstance(Key.get(type, Names.named(name)));
-                    }
-                });
+            @Override
+            public int hashCode() {
+                return getClass().hashCode();
             }
-            catch (Exception e) {
-                throw new ProvisionException("Unable to bind configuration to " + clazz, e);
+
+            @Override
+            public boolean equals(Object obj) {
+                return obj != null && getClass().equals(obj.getClass());
             }
-        }        
+        };
     }
 }

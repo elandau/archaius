@@ -32,7 +32,6 @@ import com.google.inject.name.Names;
 import com.netflix.archaius.ConfigMapper;
 import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.archaius.api.Config;
-import com.netflix.archaius.api.ConfigManager;
 import com.netflix.archaius.api.Property;
 import com.netflix.archaius.api.annotations.Configuration;
 import com.netflix.archaius.api.annotations.ConfigurationSource;
@@ -43,7 +42,6 @@ import com.netflix.archaius.cascade.ConcatCascadeStrategy;
 import com.netflix.archaius.config.MapConfig;
 import com.netflix.archaius.exceptions.MappingException;
 import com.netflix.archaius.visitor.PrintStreamVisitor;
-import com.netflix.config.api.Layers;
 
 public class ArchaiusModuleTest {
     
@@ -241,7 +239,6 @@ public class ArchaiusModuleTest {
             );
         
         injector.getInstance(Key.get(SettableConfig.class, RuntimeLayer.class));
-        injector.getInstance(ConfigManager.class);
         injector.getInstance(Config.class);
     }
     
@@ -314,7 +311,7 @@ public class ArchaiusModuleTest {
     @Test
     public void testAddingConfigFileOverride() {
         Injector injector = Guice.createInjector(new ArchaiusModule()
-            .configure(builder -> builder.addResourceToLayer(Layers.APPLICATION_OVERRIDE, "application-override"))
+//            .configure(builder -> builder.addPropertySource(Layers.APPLICATION_OVERRIDE, "application-override"))
         );
         Config config = injector.getInstance(Config.class);
         

@@ -17,6 +17,7 @@ package com.netflix.archaius.config;
 
 import java.util.Iterator;
 import java.util.LinkedHashSet;
+import java.util.function.BiConsumer;
 
 import com.netflix.archaius.api.Config;
 import com.netflix.archaius.api.ConfigListener;
@@ -114,5 +115,10 @@ public class PrefixedViewConfig extends AbstractConfig {
     {
         super.removeListener(listener);
         config.removeListener(listener);
+    }
+
+    @Override
+    public void forEach(BiConsumer<String, Object> consumer) {
+        config.forEach(consumer);
     }
 }
