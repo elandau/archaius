@@ -43,13 +43,25 @@ public class ImmutablePropertySource implements PropertySource {
             return this;
         }
         
-        public <T> Builder put(String key, T value) {
+        public Builder putSource(PropertySource propertySource) {
+            Preconditions.checkArgument(source != null, "Builder already created");
+            propertySource.forEach((key, value) -> source.properties.putIfAbsent(key, value));
+            return this;
+        }
+        
+        public Builder putSources(Collection<PropertySource> sources) {
+            Preconditions.checkArgument(source != null, "Builder already created");
+            sources.forEach(this::putSource);
+            return this;
+        }
+        
+        public Builder put(String key, Object value) {
             Preconditions.checkArgument(source != null, "Builder already created");
             source.properties.put(key, value);
             return this;
         }
         
-        public <T> Builder putIfAbsent(String key, T value) {
+        public Builder putIfAbsent(String key, Object value) {
             Preconditions.checkArgument(source != null, "Builder already created");
             source.properties.putIfAbsent(key, value);
             return null;
@@ -149,5 +161,10 @@ public class ImmutablePropertySource implements PropertySource {
     @Override
     public void forEach(String prefix, BiConsumer<String, Object> consumer) {
         properties.subMap(prefix, prefix + Character.MAX_VALUE).forEach(consumer);
+    }
+
+    @Override
+    public String toString() {
+        return "ImmutablePropertySource [name=" + name + "]";
     }
 }

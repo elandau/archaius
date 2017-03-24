@@ -1,26 +1,24 @@
 package com.netflix.config.sources;
 
-import com.netflix.config.api.Configuration;
+import com.netflix.config.api.PropertyResolver;
 import com.netflix.config.api.PropertySource;
 import com.netflix.config.api.TypeResolver;
-import com.netflix.config.resolver.ResolverLookupImpl;
 
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Optional;
 
-public class TypeResolvingPropertySource extends DelegatingPropertySource implements Configuration {
+/**
+ * PropertySource capable of resolving property value to any Java type support by a {@link TypeResolver.Registery}
+ */
+public class DefaultPropertyResolver implements PropertyResolver {
 
     private final TypeResolver.Registry registry;
-    private final PropertySource delegate;
+    private final PropertySource source;
     
-    public TypeResolvingPropertySource(PropertySource source) {
-        this(source, new ResolverLookupImpl());
-    }
-
-    public TypeResolvingPropertySource(PropertySource source, TypeResolver.Registry registry) {
-        this.delegate = new InterpolatingPropertySource(source);
+    public DefaultPropertyResolver(PropertySource source, TypeResolver.Registry registry) {
+        this.source = source;
         this.registry = registry;
     }
 
@@ -74,10 +72,12 @@ public class TypeResolvingPropertySource extends DelegatingPropertySource implem
         return get(key, Byte.class);
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public <T> Optional<T> get(String key, Type type) {
         try {
-            return (Optional<T>) Optional.ofNullable(registry.get(type).resolve(key, this, registry));
+            return (Optional<T>) Optional
+                    .ofNullable(registry.get(type).resolve(key, source, registry));
         } catch (RuntimeException e) {
             throw new RuntimeException("Failed to get property " + key + " of type " + type, e);
         }
@@ -86,25 +86,9 @@ public class TypeResolvingPropertySource extends DelegatingPropertySource implem
     @Override
     public <T> Optional<T> get(String key, Class<T> type) {
         try {
-            return (Optional<T>) Optional.ofNullable(registry.get(type).resolve(key, this, registry));
+            return (Optional<T>) Optional.ofNullable(registry.get(type).resolve(key, source, registry));
         } catch (RuntimeException e) {
             throw new RuntimeException("Failed to get property " + key + " of type " + type, e);
         }
-    }
-
-    @Override
-    public TypeResolvingPropertySource subset(String prefix) {
-        if (prefix.isEmpty()) {
-            return this;
-        } else if (!prefix.endsWith(".")) {
-            return subset(prefix + ".");
-        } else {
-            return new TypeResolvingPropertySource(delegate().subset(prefix), registry);
-        }
-    }
-
-    @Override
-    protected PropertySource delegate() {
-        return delegate;
     }
 }

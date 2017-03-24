@@ -1,14 +1,5 @@
 package com.netflix.archaius.guice;
 
-import java.util.Collections;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.UnaryOperator;
-
-import javax.inject.Named;
-import javax.inject.Provider;
-
 import com.google.inject.AbstractModule;
 import com.google.inject.Inject;
 import com.google.inject.Provides;
@@ -30,9 +21,19 @@ import com.netflix.archaius.config.DefaultSettableConfig;
 import com.netflix.config.api.Bundle;
 import com.netflix.config.api.Configuration;
 import com.netflix.config.api.Layers;
-import com.netflix.config.sources.LayeredPropertySource;
-import com.netflix.config.sources.formats.PropertySourceFactory;
+import com.netflix.config.api.PropertySource;
+import com.netflix.config.sources.DefaultSortedCompositePropertySource;
+import com.netflix.config.sources.formats.BundleToPropertySource;
 import com.netflix.governator.providers.Advises;
+
+import java.util.Collections;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.UnaryOperator;
+
+import javax.inject.Named;
+import javax.inject.Provider;
 
 public final class LegacyInternalArchaiusModule extends AbstractModule {
     public static final String CONFIG_NAME_KEY = "archaius.config.name";
@@ -101,21 +102,21 @@ public final class LegacyInternalArchaiusModule extends AbstractModule {
 
     @Advises(order = LEGACY_ADVICE_ORDER)
     @Singleton
-    UnaryOperator<LayeredPropertySource> adviseOptionalOverrideLayer(ConfigParameters params) throws Exception {
+    UnaryOperator<DefaultSortedCompositePropertySource> adviseOptionalOverrideLayer(ConfigParameters params) throws Exception {
         return source -> {
-            PropertySourceFactory factory = new PropertySourceFactory(source);
+            BundleToPropertySource factory = new BundleToPropertySource(source);
             
             params.getDefaultConfigs()
-                .forEach(config -> source.addPropertySourceAtLayer(Layers.ENVIRONMENT_DEFAULTS, new ConfigToPropertySource("", config)));
+                .forEach(config -> source.addPropertySource(Layers.ENVIRONMENT_DEFAULTS, new ConfigToPropertySource("", config)));
             
             params.getOverrideResources()
-                .forEach(resourceName -> source.addPropertySourceAtLayer(Layers.OVERRIDE, factory.apply(new Bundle(resourceName, null /* TODO */))));
+                .forEach(resourceName -> source.addPropertySource(Layers.OVERRIDE, factory.apply(new Bundle(resourceName, null /* TODO */))));
             
             String applicationName = params.getConfigName().orElse("application");
-            source.addPropertySourceAtLayer(Layers.APPLICATION, factory.apply(new Bundle(applicationName, null /* TODO */)));
+            source.addPropertySource(Layers.APPLICATION, factory.apply(new Bundle(applicationName, null /* TODO */)));
             
             params.getApplicationOverride()
-                .ifPresent(provider -> source.addPropertySourceAtLayer(Layers.APPLICATION_OVERRIDE, new ConfigToPropertySource("", provider.get())));
+                .ifPresent(provider -> source.addPropertySource(Layers.APPLICATION_OVERRIDE, new ConfigToPropertySource("", provider.get())));
             
 //            params.getRemoteLayer()
 //                .ifPresent(provider -> source.addPropertySource(Layers.REMOTE_OVERRIDE, (config) ->
@@ -135,31 +136,36 @@ public final class LegacyInternalArchaiusModule extends AbstractModule {
     
     @Provides
     @Singleton
-    Config getConfiguration(Configuration configuration) {
+    @Deprecated
+    Config getConfiguration(Configuration<? extends PropertySource> configuration) {
         return new ConfigurationToConfigAdapter(configuration);
     }
     
     @Provides
     @Singleton
     @RuntimeLayer
+    @Deprecated
     SettableConfig getSettableConfig() {
         return new DefaultSettableConfig();
     }
     
     @Provides
     @Singleton
+    @Deprecated
     PropertyFactory getPropertyFactory(Config config) {
         return DefaultPropertyFactory.from(config);
     }
 
     @Provides
     @Singleton
+    @Deprecated
     ConfigProxyFactory getProxyFactory(Config config, Decoder decoder, PropertyFactory factory) {
         return new ConfigProxyFactory(config, decoder, factory);
     }
     
     @Provides
     @Singleton
+    @Deprecated
     Decoder getDecoder() {
         return DefaultDecoder.INSTANCE;
     }

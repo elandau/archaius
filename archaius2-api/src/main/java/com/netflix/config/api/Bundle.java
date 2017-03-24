@@ -1,22 +1,44 @@
 package com.netflix.config.api;
 
+import com.google.common.base.Preconditions;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
 
 /**
- * Bundle of a named resource with optional cascading strategy.
+ * Bundle of a named resource with optional cascading strategy
  */
 public final class Bundle {
-    public Bundle(String name, Function<String, List<String>> cascadeGenerator) {
-        this.name = name;
-        this.cascadeGenerator = (cascadeGenerator != null) ? cascadeGenerator : str -> Collections.singletonList(str);
+    public interface CascadeGenerator extends Function<String, List<String>> {
+    }
+    
+    public static class EmptyGenerator implements CascadeGenerator {
+        @Override
+        public List<String> apply(String t) {
+            return Collections.singletonList(t);
+        }
     }
     
     private final String name;
-    private final Function<String, List<String>> cascadeGenerator;
+    private final Class<? extends CascadeGenerator> cascadeGenerator;
     
-    public Function<String, List<String>> getCascadeGenerator() {
+    public static Bundle named(String name) {
+        return new Bundle(name, EmptyGenerator.class);
+    }
+    
+    public Bundle cascadeGenerator(Class<? extends CascadeGenerator> cascadeGenerator) {
+        return new Bundle(name, cascadeGenerator);
+    }
+    
+    private Bundle(String name, Class<? extends CascadeGenerator> cascadeGenerator) {
+        Preconditions.checkNotNull(name);
+        Preconditions.checkNotNull(cascadeGenerator);
+        this.name = name;
+        this.cascadeGenerator = cascadeGenerator;
+    }
+    
+    public Class<? extends CascadeGenerator> getCascadeGenerator() {
         return cascadeGenerator;
     }
     

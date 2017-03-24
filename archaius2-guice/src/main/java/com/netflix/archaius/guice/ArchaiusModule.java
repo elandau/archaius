@@ -15,12 +15,6 @@
  */
 package com.netflix.archaius.guice;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Properties;
-import java.util.function.Consumer;
-import java.util.function.UnaryOperator;
-
 import com.google.inject.AbstractModule;
 import com.google.inject.Injector;
 import com.google.inject.Singleton;
@@ -35,9 +29,15 @@ import com.netflix.archaius.config.ConfigToPropertySource;
 import com.netflix.config.api.Layer;
 import com.netflix.config.api.Layers;
 import com.netflix.config.api.PropertySource;
+import com.netflix.config.sources.DefaultSortedCompositePropertySource;
 import com.netflix.config.sources.ImmutablePropertySource;
-import com.netflix.config.sources.LayeredPropertySource;
 import com.netflix.governator.providers.Advises;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Properties;
+import java.util.function.Consumer;
+import java.util.function.UnaryOperator;
 
 /**
  * Guice Module for bootstrapping archaius's {@link DefaultConfigManager} and making its components injectable. 
@@ -84,7 +84,7 @@ public class ArchaiusModule extends AbstractModule {
     
     private Class<? extends CascadeStrategy> cascadeStrategy = null;
     private String configName = null;
-    private final List<Consumer<LayeredPropertySource>> overrides = new ArrayList<>();
+    private final List<Consumer<DefaultSortedCompositePropertySource>> overrides = new ArrayList<>();
     
     public ArchaiusModule withCascadeStrategy(Class<? extends CascadeStrategy> cascadeStrategy) {
         this.cascadeStrategy = cascadeStrategy;
@@ -97,7 +97,7 @@ public class ArchaiusModule extends AbstractModule {
     }
     
     public ArchaiusModule withPropertySource(Layer layer, PropertySource source) {
-        overrides.add((root) -> root.addPropertySourceAtLayer(layer, source));
+        overrides.add((root) -> root.addPropertySource(layer, source));
         return this;
     }
     
@@ -107,7 +107,7 @@ public class ArchaiusModule extends AbstractModule {
                 ImmutablePropertySource.builder().putAll(props).build());
     }
     
-    public ArchaiusModule configure(Consumer<LayeredPropertySource> consumer) {
+    public ArchaiusModule configure(Consumer<DefaultSortedCompositePropertySource> consumer) {
         overrides.add(consumer);
         return this;
     }
@@ -281,7 +281,7 @@ public class ArchaiusModule extends AbstractModule {
     
     @Advises
     @Singleton
-    UnaryOperator<LayeredPropertySource> applyConsumers(Injector injector) throws Exception {
+    UnaryOperator<DefaultSortedCompositePropertySource> applyConsumers(Injector injector) throws Exception {
         return source -> {
             overrides.forEach(override -> override.accept(source));
             return source;

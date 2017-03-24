@@ -10,7 +10,8 @@ import org.junit.Test;
 import com.netflix.config.api.PropertySource;
 import com.netflix.config.sources.EmptyPropertySource;
 import com.netflix.config.sources.ImmutablePropertySource;
-import com.netflix.config.sources.formats.YamlToPropertySource;
+import com.netflix.config.sources.formats.PropertySourceFactoryContext;
+import com.netflix.config.sources.formats.YamlPropertySourceFormat;
 
 public class YamlTest {
     @Test
@@ -20,7 +21,7 @@ public class YamlTest {
         
         PropertySource yamlSource = Stream.of("loadtest.yml")
                 .map(ClassLoader::getSystemResource)
-                .map(new YamlToPropertySource(environment))
+                .map(url -> YamlPropertySourceFormat.INSTANCE.read(url, PropertySourceFactoryContext.DEFAULT).get())
                 .findFirst().get();
         
         Assert.assertEquals(11,  yamlSource.size());
@@ -35,7 +36,7 @@ public class YamlTest {
         
         PropertySource yamlSource = Stream.of("loadtest.yml")
                 .map(ClassLoader::getSystemResource)
-                .map(new YamlToPropertySource(environment))
+                .map(url -> YamlPropertySourceFormat.INSTANCE.read(url, PropertySourceFactoryContext.DEFAULT).get())
                 .findFirst().get();
         
         Assert.assertEquals(11,  yamlSource.size());
@@ -50,7 +51,7 @@ public class YamlTest {
         
         PropertySource yamlSource = Stream.of("loadtest.yml")
                 .map(ClassLoader::getSystemResource)
-                .map(new YamlToPropertySource(environment))
+                .map(url -> YamlPropertySourceFormat.INSTANCE.read(url, PropertySourceFactoryContext.DEFAULT).get())
                 .findFirst().get();
         
         Assert.assertEquals(11,  yamlSource.size());
@@ -63,7 +64,7 @@ public class YamlTest {
         Stream.of("missing.yml")
             .map(ClassLoader::getSystemResource)
             .filter(url -> url != null)
-            .map(new YamlToPropertySource(EmptyPropertySource.INSTANCE))
+            .map(url -> YamlPropertySourceFormat.INSTANCE.read(url, PropertySourceFactoryContext.DEFAULT).get())
             .forEach(source -> source.forEach((key, value) -> properties.put(key, value)));
         
         Assert.assertTrue(properties.isEmpty());

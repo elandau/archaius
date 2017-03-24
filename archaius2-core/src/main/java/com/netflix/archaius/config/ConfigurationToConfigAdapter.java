@@ -1,10 +1,10 @@
 package com.netflix.archaius.config;
 
+import com.netflix.archaius.DefaultConfiguration;
 import com.netflix.archaius.api.Config;
 import com.netflix.archaius.api.ConfigListener;
 import com.netflix.archaius.api.Decoder;
 import com.netflix.archaius.api.StrInterpolator;
-import com.netflix.config.sources.TypeResolvingPropertySource;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -16,9 +16,9 @@ import java.util.function.BiConsumer;
  */
 public class ConfigurationToConfigAdapter implements Config {
 
-    private final TypeResolvingPropertySource configuration;
+    private final DefaultConfiguration configuration;
     
-    public ConfigurationToConfigAdapter(TypeResolvingPropertySource configuration) {
+    public ConfigurationToConfigAdapter(DefaultConfiguration configuration) {
         this.configuration = configuration;
     }
     
@@ -34,7 +34,7 @@ public class ConfigurationToConfigAdapter implements Config {
 
     @Override
     public Object getRawProperty(String key) {
-        return configuration.getProperty(key);
+        return configuration.getPropertySource().getProperty(key).orElse(null);
     }
 
     @Override
@@ -157,27 +157,27 @@ public class ConfigurationToConfigAdapter implements Config {
 
     @Override
     public <T> T get(Class<T> type, String key) {
-        return (T) configuration.get(key, type).get();
+        return (T) configuration.getPropertyResolver().get(key, type).get();
     }
 
     @Override
     public <T> T get(Class<T> type, String key, T defaultValue) {
-        return (T) configuration.get(key, type).orElse(defaultValue);
+        return (T) configuration.getPropertyResolver().get(key, type).orElse(defaultValue);
     }
 
     @Override
     public boolean containsKey(String key) {
-        return configuration.getProperty(key).isPresent();
+        return configuration.getPropertySource().getProperty(key).isPresent();
     }
 
     @Override
     public boolean isEmpty() {
-        return configuration.isEmpty();
+        return configuration.getPropertySource().isEmpty();
     }
 
     @Override
     public Iterator<String> getKeys() {
-        return configuration.getKeys().iterator();
+        return configuration.getPropertySource().getKeys().iterator();
     }
 
     @Override

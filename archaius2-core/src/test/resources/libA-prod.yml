@@ -2,10 +2,10 @@ libA :
     yaml : 
         loaded : true
         
-libA[${env}=test] :
+libA [${env}=test] :
     conditional: 
         test : true
         
-libA[${env}=prod] :
+libA [${env}=prod] :
     conditional: 
         prod : true

@@ -6,6 +6,9 @@ import java.util.Collection;
 import java.util.Optional;
 import java.util.function.BiConsumer;
 
+/**
+ * Delegating property source that is a subset of another PropertySource
+ */
 public final class SubsetPropertySource implements PropertySource {
     private final String path;
     private final PropertySource delegate;

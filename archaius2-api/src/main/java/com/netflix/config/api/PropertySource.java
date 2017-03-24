@@ -4,7 +4,6 @@ import java.util.Collection;
 import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-import java.util.stream.Stream;
 
 /**
  * Contract for a source of raw properties.  A PropertySource may be associated with a single
@@ -13,7 +12,7 @@ import java.util.stream.Stream;
  * 
  * Users are not expected to interact with PropertySource for reading configuration.  
  * 
- * @see Configuration
+ * @see PropertyResolver
  */
 public interface PropertySource {
     /**
@@ -78,20 +77,4 @@ public interface PropertySource {
      * snapshot state
      */
     PropertySource snapshot();
-    
-    /**
-     * @return Stream with any child PropertySource instances used to construct this property source.
-     * For most PropertySource implementations this will be an empty stream.
-     */
-    default Stream<PropertySource> children() {
-        return Stream.empty();
-    }
-
-    /**
-     * @return Flattened view of the child PropertySource instances backing this PropertySource.  The
-     * resulting stream returns an ordered set of PropertySources.
-     */
-    default Stream<PropertySource> flattened() {
-        return Stream.concat(Stream.of(this), children().flatMap(PropertySource::flattened));
-    }
 }

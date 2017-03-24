@@ -1,8 +1,11 @@
 package com.netflix.config.sources;
 
 import com.netflix.archaius.internal.WeakReferenceSet;
-import com.netflix.config.api.Layer;
 import com.netflix.config.api.PropertySource;
+import com.netflix.config.api.SortedCompositePropertySource;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -10,13 +13,10 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.SortedMap;
 import java.util.TreeMap;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-import java.util.stream.Stream;
+import java.util.function.Function;
 
 /**
  * Composite PropertySource with child sources ordered by {@link Layer}s where there can be 
@@ -30,14 +30,14 @@ import java.util.stream.Stream;
  * TODO: Get config names
  * TODO: ConfigLoader?
  */
-public class LayeredPropertySource extends DelegatingPropertySource {
-
+public class DefaultSortedCompositePropertySource extends DelegatingPropertySource implements SortedCompositePropertySource {
+    private static final Logger LOG = LoggerFactory.getLogger(DefaultSortedCompositePropertySource.class);
+    
     private final String name;
     private final WeakReferenceSet<Consumer<PropertySource>> listeners = new WeakReferenceSet<>();
     private final AtomicReference<ImmutableCompositeState> state = new AtomicReference<>(new ImmutableCompositeState(Collections.emptyList()));
-    private final ConcurrentMap<Layer, MutablePropertySource> settablePropertySources = new ConcurrentHashMap<>();
     
-    public LayeredPropertySource(String name) {
+    public DefaultSortedCompositePropertySource(String name) {
         this.name = name;
     }
     
@@ -46,44 +46,38 @@ public class LayeredPropertySource extends DelegatingPropertySource {
         return this.name;
     }
 
-    public void addPropertySourceAtLayer(Layer layer, PropertySource source) {
+    /**
+     * Add a property source to the end of the specified layer (or beginning if Layer.reversed() == true)
+     * 
+     * @param layer Key identifier
+     * @param source
+     */
+    @Override
+    public DefaultSortedCompositePropertySource addPropertySource(Layer layer, PropertySource source) {
         addPropertySourceAtLayer(layer, insertionOrderCounter.incrementAndGet(), source);
+        return this;
     }
     
-    private void addPropertySourceAtLayer(Layer layer, int layerInternalOrder, PropertySource source) {
+    @Override
+    public DefaultSortedCompositePropertySource addPropertySource(Layer layer,
+            Function<SortedCompositePropertySource, PropertySource> loader) {
+        return addPropertySource(layer, loader.apply(this));
+    }
+
+    @Override
+    public void forEach(Consumer<PropertySource> consumer) {
+        this.state.get().children.stream().map(holder -> holder.source).forEach(consumer);
+    }
+
+    private void addPropertySourceAtLayer(Layer key, int keyInternalOrder, PropertySource source) {
         state.getAndUpdate(current -> {
             List<ChildPropertySourceHolder> newEntries = new ArrayList<>(current.children);
-            newEntries.add(new ChildPropertySourceHolder(layer, insertionOrderCounter.incrementAndGet(), source));
-            newEntries.sort(ByLayerAndInsertionOrder);
+            newEntries.add(new ChildPropertySourceHolder(key, insertionOrderCounter.incrementAndGet(), source));
+            newEntries.sort(ByPriorityAndInsertionOrder);
             return new ImmutableCompositeState(newEntries);
         });
         
         source.addListener(this::notifyListeners);
-    }
-
-    private MutablePropertySource getOrCreateMutablePropertySource(Layer layer) {
-        return settablePropertySources.computeIfAbsent(layer, l -> { 
-                    MutablePropertySource source = new MutablePropertySource("settable");
-                    addPropertySourceAtLayer(layer, 0, source);
-                    return source;
-                });
-    }
-    
-    /**
-     * Set a property for the layer.  This value takes precedence over any others in the layer.
-     */
-    public void setPropertyAtLayer(Layer layer, String key, Object value) {
-        getOrCreateMutablePropertySource(layer).setProperty(key, value);
-    }
-
-    /**
-     * Clear a property from the override the specified layer.  Once cleared 
-     * 
-     * @param layer
-     * @param key
-     */
-    public void clearPropertyAtLayer(Layer layer, String key) {
-        getOrCreateMutablePropertySource(layer).clearProperty(key);
     }
 
     @Override
@@ -106,12 +100,12 @@ public class LayeredPropertySource extends DelegatingPropertySource {
      * Instance of a single child PropertySource within the composite structure
      */
     private static class ChildPropertySourceHolder {
-        private final Layer layer;
+        private final Layer key;
         private final int insertionOrder;
         private final PropertySource source;
         
-        private ChildPropertySourceHolder(Layer layer, int internalOrder, PropertySource source) {
-            this.layer = layer;
+        private ChildPropertySourceHolder(Layer key, int internalOrder, PropertySource source) {
+            this.key = key;
             this.insertionOrder = internalOrder;
             this.source = source;
         }
@@ -121,7 +115,7 @@ public class LayeredPropertySource extends DelegatingPropertySource {
             final int prime = 31;
             int result = 1;
             result = 31 + ((source == null) ? 0 : source.hashCode());
-            result = prime * result + ((layer == null) ? 0 : layer.hashCode());
+            result = prime * result + ((key == null) ? 0 : key.hashCode());
             return result;
         }
 
@@ -139,29 +133,31 @@ public class LayeredPropertySource extends DelegatingPropertySource {
                     return false;
             } else if (!source.equals(other.source))
                 return false;
-            if (layer == null) {
-                if (other.layer != null)
+            if (key == null) {
+                if (other.key != null)
                     return false;
-            } else if (!layer.equals(other.layer))
+            } else if (!key.equals(other.key))
                 return false;
             return true;
         }
 
         @Override
         public String toString() {
-            return "Element [layer=" + layer + ", id=" + insertionOrder + ", value=" + source + "]";
+            return "Element [key=" + key + ", id=" + insertionOrder + ", value=" + source + "]";
         }
     }
     
-    private static final Comparator<ChildPropertySourceHolder> ByLayerAndInsertionOrder = (ChildPropertySourceHolder o1, ChildPropertySourceHolder o2) -> {
-        if (o1.layer != o2.layer) {
-            int result = o1.layer.getOrder() - o2.layer.getOrder();
+    private static final Comparator<ChildPropertySourceHolder> ByPriorityAndInsertionOrder = (ChildPropertySourceHolder o1, ChildPropertySourceHolder o2) -> {
+        if (o1.key != o2.key) {
+            int result = o1.key.getOrder() - o2.key.getOrder();
             if (result != 0) {
                 return result;
             }
         }
         
-        return o2.insertionOrder - o1.insertionOrder;
+        return o1.key.isReversedOrder()
+                ? o1.insertionOrder - o2.insertionOrder
+                : o2.insertionOrder - o1.insertionOrder;                        
     };
 
     /**
@@ -176,23 +172,12 @@ public class LayeredPropertySource extends DelegatingPropertySource {
             SortedMap<String, Object> map = new TreeMap<>();
             
             this.children = Collections.unmodifiableList(entries);
-            this.children.forEach(element -> element.source.forEach((key, value) -> map.putIfAbsent(key, value)));
+            this.children
+                    .forEach(child -> child.source
+                            .forEach((key, value) -> map.putIfAbsent(key, value)));
             
+            System.out.println("Update : " + map.size());
             this.data = new ImmutablePropertySource(name, map);
         }        
-    }
-
-    /**
-     * Examples
-     * 
-     * <li>Child names</li>
-     * {@code 
-     * source.flatten().map(Source::getName).collect(Collector.toList());
-     * }
-     * 
-     */
-    @Override
-    public Stream<PropertySource> children() {
-        return state.get().children.stream().map(element -> element.source);
     }
 }

@@ -55,6 +55,11 @@ public abstract class DelegatingPropertySource implements PropertySource {
     }
 
     @Override
+    public void forEach(String prefix, BiConsumer<String, Object> consumer) {
+        delegate().forEach(prefix, consumer);
+    }
+    
+    @Override
     public PropertySource subset(String prefix) {
         if (prefix.isEmpty()) {
             return this;
@@ -65,10 +70,5 @@ public abstract class DelegatingPropertySource implements PropertySource {
         }
     }
 
-    @Override
-    final public void forEach(String prefix, BiConsumer<String, Object> consumer) {
-        delegate().forEach(prefix, consumer);
-    }
-    
     protected abstract PropertySource delegate();
 }

@@ -9,7 +9,7 @@ import java.util.Collections;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class SetTypeResolver implements TypeResolver<Set<?>> {
+public final class SetTypeResolver implements TypeResolver<Set<?>> {
 
     private Type elementType;
     

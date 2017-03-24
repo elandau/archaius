@@ -23,7 +23,7 @@ import com.netflix.config.DynamicPropertySupport;
 import com.netflix.config.PropertyListener;
 import com.netflix.config.api.Layers;
 import com.netflix.config.api.PropertySource;
-import com.netflix.config.sources.LayeredPropertySource;
+import com.netflix.config.sources.DefaultSortedCompositePropertySource;
 
 /**
  * @see StaticArchaiusBridgeModule
@@ -31,7 +31,7 @@ import com.netflix.config.sources.LayeredPropertySource;
 @Singleton
 class AbstractConfigurationBridge extends AbstractConfiguration implements AggregatedConfiguration, DynamicPropertySupport {
 
-    private final LayeredPropertySource propertySource;
+    private final DefaultSortedCompositePropertySource propertySource;
     private final SettableConfig settable;
     private final AtomicInteger libNameCounter = new AtomicInteger();
     
@@ -41,7 +41,7 @@ class AbstractConfigurationBridge extends AbstractConfiguration implements Aggre
     
     @Inject
     public AbstractConfigurationBridge(
-            final LayeredPropertySource propertySource,
+            final DefaultSortedCompositePropertySource propertySource,
             @RuntimeLayer SettableConfig settable, 
             DeploymentContext context) {
         this.propertySource = propertySource;
@@ -86,7 +86,7 @@ class AbstractConfigurationBridge extends AbstractConfiguration implements Aggre
     @Override
     public void addConfiguration(AbstractConfiguration config, String name) {
         try {
-            this.propertySource.addPropertySourceAtLayer(Layers.LIBRARIES, new CommonsToPropertySource(name, config));
+            this.propertySource.addPropertySource(Layers.LIBRARIES, new CommonsToPropertySource(name, config));
         }
         catch (ConfigAlreadyExistsException e) {
             // OK To ignore

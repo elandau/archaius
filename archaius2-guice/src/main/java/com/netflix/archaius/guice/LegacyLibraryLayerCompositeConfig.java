@@ -11,13 +11,13 @@ import com.netflix.archaius.api.exceptions.ConfigException;
 import com.netflix.archaius.config.AbstractConfig;
 import com.netflix.archaius.config.ConfigToPropertySource;
 import com.netflix.config.api.Layers;
-import com.netflix.config.sources.LayeredPropertySource;
+import com.netflix.config.sources.DefaultSortedCompositePropertySource;
 
 class LegacyLibraryLayerCompositeConfig extends AbstractConfig implements CompositeConfig {
 
-    private final LayeredPropertySource propertySource;
+    private final DefaultSortedCompositePropertySource propertySource;
 
-    public LegacyLibraryLayerCompositeConfig(LayeredPropertySource propertySource) {
+    public LegacyLibraryLayerCompositeConfig(DefaultSortedCompositePropertySource propertySource) {
         this.propertySource = propertySource;
     }
     
@@ -43,7 +43,7 @@ class LegacyLibraryLayerCompositeConfig extends AbstractConfig implements Compos
 
     @Override
     public boolean addConfig(String name, Config child) throws ConfigException {
-        propertySource.addPropertySourceAtLayer(Layers.LIBRARIES, new ConfigToPropertySource(name, child));
+        propertySource.addPropertySource(Layers.LIBRARIES, new ConfigToPropertySource(name, child));
         return false;
     }
 

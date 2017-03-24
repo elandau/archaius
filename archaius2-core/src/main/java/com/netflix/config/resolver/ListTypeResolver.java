@@ -9,7 +9,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class ListTypeResolver implements TypeResolver<List<?>> {
+public final class ListTypeResolver implements TypeResolver<List<?>> {
 
     private Type elementType;
     

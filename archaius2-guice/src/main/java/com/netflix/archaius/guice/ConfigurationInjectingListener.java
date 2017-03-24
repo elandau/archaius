@@ -14,8 +14,8 @@ import com.netflix.archaius.interpolate.CommonsStrInterpolator;
 import com.netflix.config.api.Bundle;
 import com.netflix.config.api.Layers;
 import com.netflix.config.api.PropertySource;
-import com.netflix.config.sources.LayeredPropertySource;
-import com.netflix.config.sources.formats.PropertySourceFactory;
+import com.netflix.config.sources.DefaultSortedCompositePropertySource;
+import com.netflix.config.sources.formats.BundleToPropertySource;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,15 +38,15 @@ public class ConfigurationInjectingListener implements ProvisionListener {
     private StrInterpolator.Lookup lookup;
     private StrInterpolator interpolator;
     
-    private LayeredPropertySource mainSource;
-    private PropertySourceFactory factory;
+    private DefaultSortedCompositePropertySource mainSource;
+    private BundleToPropertySource factory;
     private ConfigMapper mapper = new ConfigMapper();
     
     @Inject
-    private void setLayeredPropertySource(LayeredPropertySource mainSource) {
+    private void setLayeredPropertySource(DefaultSortedCompositePropertySource mainSource) {
         this.mainSource = mainSource;
         
-        this.factory = new PropertySourceFactory(mainSource);
+        this.factory = new BundleToPropertySource(mainSource);
         
         StrInterpolator.Lookup lookup = key -> mainSource.getProperty(key).map(Object::toString).orElse(null);
         this.interpolator = value -> CommonsStrInterpolator.INSTANCE.create(lookup);
@@ -82,7 +82,7 @@ public class ConfigurationInjectingListener implements ProvisionListener {
                 });
                 
                 PropertySource loadedPropertySource = factory.apply(bundle);
-                mainSource.addPropertySourceAtLayer(Layers.LIBRARIES, loadedPropertySource);
+                mainSource.addPropertySource(Layers.LIBRARIES, loadedPropertySource);
             });
         }
         

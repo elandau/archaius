@@ -3,8 +3,8 @@ package com.netflix.archaius.sources;
 import com.netflix.archaius.api.annotations.DefaultValue;
 import com.netflix.archaius.api.annotations.PropertyName;
 import com.netflix.config.api.PropertySource;
+import com.netflix.config.sources.DefaultPropertyResolver;
 import com.netflix.config.sources.ImmutablePropertySource;
-import com.netflix.config.sources.TypeResolvingPropertySource;
 
 import org.junit.Test;
 
@@ -30,7 +30,6 @@ public class TypeResolvingPropertySourceTest {
     
     @Test
     public void test() {
-        System.out.println("Starting");
         PropertySource source = ImmutablePropertySource.builder()
                 .put("value", "30")
                 .put("foo.string",  "a1")
@@ -42,12 +41,28 @@ public class TypeResolvingPropertySourceTest {
                 .put("foo.map.a3", "${value}")
                 .build();
         
-        TypeResolvingPropertySource configuration = new TypeResolvingPropertySource(source);
+        DefaultPropertyResolver configuration = new DefaultPropertyResolver(source);
         Foo foo = configuration.get("foo", Foo.class).get();
 
-//        foo.onString((newValue) -> do something);
-        
         System.out.println(foo);
+    }
+    
+    @Test
+    public void testInterpolatingSubset() {
+        PropertySource source = ImmutablePropertySource.builder()
+                .put("value", "30")
+                .put("foo.string",  "${value}")
+                .build();
+//        
+//        DefaultResolvingPropertySource configuration = new DefaultResolvingPropertySource(source);
+//        System.out.println(configuration.getKeys());
+//        
+//        Assert.assertEquals("30", configuration.getString("foo.string").orElse(""));
+//        DefaultResolvingPropertySource prefixed = configuration.subset("foo");
+//        Assert.assertEquals("30", prefixed.getString("string").orElse(""));
+//        
+//        System.out.println(configuration.getKeys());
+//        System.out.println(prefixed.getKeys());
     }
     
 }

@@ -11,16 +11,15 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class ResolverLookupImpl implements TypeResolver.Registry {
-    
+public final class DefaultTypeResolverRegistry implements TypeResolver.Registry {
     private Map<Type, TypeResolver<?>> deserializers = new ConcurrentHashMap<>();
     
-    public ResolverLookupImpl() {
+    public DefaultTypeResolverRegistry() {
         StringConverterRegistry.DEFAULT_CONVERTERS.forEach((type, converter) -> {
             deserializers.put(type, new TypeResolver<Object>() {
                 @Override
                 public Object resolve(String path, PropertySource source, TypeResolver.Registry resolvers) {
-                    throw new IllegalStateException();
+                    return source.getProperty(path).map(value -> resolve(value, resolvers)).orElse(null);
                 }
 
                 @Override

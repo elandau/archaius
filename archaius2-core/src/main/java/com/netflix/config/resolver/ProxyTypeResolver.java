@@ -11,7 +11,6 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 import java.util.function.Function;
 
 /**
@@ -41,16 +40,13 @@ public class ProxyTypeResolver<T> implements TypeResolver<T> {
         for (Method method : type.getDeclaredMethods()) {
             final String methodName = nameResolver.apply(method);
             try {
-                // TODO: What if not found
-                final Optional<?> value = source
-                    .getProperty(path + methodName)
-                    .map(v -> resolvers.get(method.getGenericReturnType())
-                            .resolve(v, resolvers));
+                TypeResolver<?> resolver = resolvers.get(method.getGenericReturnType());
+                final Object value = resolver.resolve(path + methodName, source, resolvers);
                 
                 methods.put(method, new MethodInvoker() {
                     @Override
                     public Object invoke(Object... args) {
-                        return value.orElse(null);
+                        return value;
                     }
                 });
             } catch (Exception e) {

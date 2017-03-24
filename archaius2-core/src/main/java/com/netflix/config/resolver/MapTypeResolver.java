@@ -7,7 +7,7 @@ import java.lang.reflect.Type;
 import java.util.HashMap;
 import java.util.Map;
 
-public class MapTypeResolver implements TypeResolver<Map<Object, Object>> {
+public final class MapTypeResolver implements TypeResolver<Map<Object, Object>> {
     private final Type keyType;
     private final Type valueType;
     
@@ -24,6 +24,7 @@ public class MapTypeResolver implements TypeResolver<Map<Object, Object>> {
         TypeResolver<?> valueResolver = resolvers.get(valueType);
         
         source.forEach(path, (key, value) -> {
+            key = key.substring(path.length() + 1);
             int index = key.indexOf(".");
             String mapKey = index == -1 ? key : key.substring(0, index);
             

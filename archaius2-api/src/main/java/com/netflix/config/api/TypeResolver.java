@@ -1,6 +1,7 @@
 package com.netflix.config.api;
 
 import java.lang.reflect.Type;
+import java.util.NoSuchElementException;
 
 /**
  * Contract for resolving a type from a ConfigurationNode.  This could be a value derived from a single
@@ -14,10 +15,21 @@ public interface TypeResolver<T> {
      * Registry of known type resolvers
      */
     public interface Registry {
-    
+        /**
+         * Return a {@link TypeResolver} for type 'type' or throw a {@link NoSuchElementException}
+         * 
+         * @param type
+         * @return
+         */
         <T> TypeResolver<T> get(Type type);
     
-        default <T> TypeResolver<T> forType(Class<T> type) {
+        /**
+         * Return a {@link TypeResolver} for type 'type' or throw a {@link NoSuchElementException}
+         * 
+         * @param type
+         * @return
+         */
+        default <T> TypeResolver<T> get(Class<T> type) {
             return get((Type)type);
         }
         
@@ -32,7 +44,7 @@ public interface TypeResolver<T> {
      * @param registry Resolve 
      * @return Resolved type
      */
-    T resolve(String path, PropertySource source, Registry resolvers);
+    T resolve(String path, PropertySource source, TypeResolver.Registry resolvers);
     
     T resolve(Object value, TypeResolver.Registry resolvers);
 }

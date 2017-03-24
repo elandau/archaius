@@ -1,6 +1,5 @@
 package com.netflix.config.sources.formats;
 
-import com.netflix.archaius.interpolate.CommonsStrInterpolator;
 import com.netflix.config.api.PropertySource;
 import com.netflix.config.sources.ImmutablePropertySource;
 
@@ -15,6 +14,7 @@ import java.io.InputStream;
 import java.net.URL;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
@@ -76,10 +76,15 @@ import java.util.function.Function;
  * latter makes searching for the full property name "application.timeout" easier.
  * 
  */
-public class YamlToPropertySource implements PropertySourceLoader {
-    private static final Logger LOG = LoggerFactory.getLogger(YamlToPropertySource.class);
+public final class YamlPropertySourceFormat implements PropertySourceFormat {
+    private static final Logger LOG = LoggerFactory.getLogger(YamlPropertySourceFormat.class);
     
     private static final String CONDITION_NOT_MET = "<condition_not_met>";
+
+    public static YamlPropertySourceFormat INSTANCE = new YamlPropertySourceFormat();
+    
+    private YamlPropertySourceFormat() {
+    }
 
     /**
      * Replacement evaluator for the syntax [key=value] that will remove the entire replacement
@@ -95,25 +100,22 @@ public class YamlToPropertySource implements PropertySourceLoader {
                         : CONDITION_NOT_MET;
                 }
             }, "[", "]", '[');
+    
     private static Function<String, String> evaluator = (str) -> evaluatorSubstitutor.replace(str);
 
-    private final Function<String, String> interpolator;
-
-    public YamlToPropertySource(PropertySource sourceForInterpolation) {
-        this.interpolator = CommonsStrInterpolator.forPropertySource(sourceForInterpolation);
-    }
-    
     @Override
-    public PropertySource apply(URL t) {
+    public Optional<PropertySource> read(URL t, PropertySourceFactoryContext options) {
+        Function<String, String> interpolator = options.getInterpolator();
+        
         Yaml yaml = new Yaml();
         
         try (InputStream is = t.openStream()) {
-            Map<String, Object> values = (Map<String, Object>) yaml.load(is);
+            Map<String, Object> rawProperties = (Map<String, Object>) yaml.load(is);
 
             ImmutablePropertySource.Builder builder = ImmutablePropertySource.builder()
                     .named(t.toExternalForm());
             
-            traverse("", "", values, (key, value) -> {
+            traverse("", "", rawProperties, (key, value) -> {
                 // Strip extra spaces from key -> interpolate values -> evaluate equalities
                 String evaluatedKey = evaluator.apply(interpolator.apply(key.replaceAll(" ", "")));
                 if (!evaluatedKey.contains(CONDITION_NOT_MET)) {
@@ -123,7 +125,7 @@ public class YamlToPropertySource implements PropertySourceLoader {
                 }
             });
                     
-            return builder.build();
+            return Optional.ofNullable(builder.build());
         } catch (IOException e) {
             throw new RuntimeException("Failed to load properties from " + t.toExternalForm());
         }
@@ -150,5 +152,10 @@ public class YamlToPropertySource implements PropertySourceLoader {
         } else {
             consumer.accept(newName, obj);
         }
+    }
+
+    @Override
+    public String getExtension() {
+        return "yml";
     }
 }
