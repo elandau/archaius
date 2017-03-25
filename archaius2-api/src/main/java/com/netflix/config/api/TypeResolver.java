@@ -47,4 +47,6 @@ public interface TypeResolver<T> {
     T resolve(String path, PropertySource source, TypeResolver.Registry resolvers);
     
     T resolve(Object value, TypeResolver.Registry resolvers);
+    
+    boolean isStruct();
 }

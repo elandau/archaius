@@ -157,12 +157,12 @@ public class ConfigurationToConfigAdapter implements Config {
 
     @Override
     public <T> T get(Class<T> type, String key) {
-        return (T) configuration.getPropertyResolver().get(key, type).get();
+        return (T) configuration.getPropertyResolver().getProperty(key, type).get();
     }
 
     @Override
     public <T> T get(Class<T> type, String key, T defaultValue) {
-        return (T) configuration.getPropertyResolver().get(key, type).orElse(defaultValue);
+        return (T) configuration.getPropertyResolver().getProperty(key, type).orElse(defaultValue);
     }
 
     @Override

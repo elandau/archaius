@@ -138,4 +138,9 @@ public class ProxyTypeResolver<T> implements TypeResolver<T> {
         c[0] = Character.toLowerCase(c[0]);
         return new String(c);
     }
+
+    @Override
+    public boolean isStruct() {
+        return true;
+    }
 }

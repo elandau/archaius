@@ -3,6 +3,7 @@ package com.netflix.config.api;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -39,7 +40,7 @@ public interface PropertyResolver {
      * @param type
      * @return
      */
-    public <T> Optional<T> get(String key, Type type);
+    public <T> Optional<T> getProperty(String key, Type type);
     
     /**
      * Get a property that has been interpolated and resolved to a specific type
@@ -47,5 +48,51 @@ public interface PropertyResolver {
      * @param type
      * @return
      */
-    public <T> Optional<T> get(String key, Class<T> type);
+    public <T> Optional<T> getProperty(String key, Class<T> type);
+    
+    /**
+     * Return of an instance of T with properties mapped to this instance.  If T
+     * is an interface a Proxy will be created for it.
+     * 
+     * @param prefix
+     * @param type
+     * @return
+     */
+    public <T> Optional<T> getObject(String prefix, Class<T> type);
+    
+    public <T> Optional<T> getObject(String prefix, Type type);
+    
+    /**
+     * Return an immutable map of keyType to valueType
+     * 
+     * @param keyType
+     * @param valueType
+     * @return
+     */
+    public <K, V> Optional<Map<K, V>> getMap(String prefix, Class<K> keyType, Class<V> valueType);
+    
+    /**
+     * Return a resolver containing only properties with the specified prefix
+     * @param prefix
+     * @return
+     */
+    public PropertyResolver withPrefix(String prefix);
+    
+    /**
+     * Return a resolver that will fallback to properties with the specified prefix.
+     * Note that 'prefix' will be appended to any prefix of this PropertyResolver
+     * 
+     * @param prefix 
+     * @return
+     */
+//    public PropertyResolver withFallback(String prefix);
+    
+    /**
+     * Return a resolver that will fallback to the specified resolver if a property
+     * is not found.
+     * 
+     * @param resolver
+     * @return
+     */
+//    public PropertyResolver withFallback(PropertyResolver resolver);
 }

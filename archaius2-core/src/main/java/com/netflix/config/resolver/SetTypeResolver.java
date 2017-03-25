@@ -33,11 +33,18 @@ public final class SetTypeResolver implements TypeResolver<Set<?>> {
         TypeResolver<?> elementResolver = registry.get(elementType);
         
         if (value instanceof String) {
-            return Arrays.stream(((String)value).split(","))
+            return Collections.unmodifiableSet(Arrays.stream(((String)value).split(","))
+                .map(String::trim)
+                .filter(str -> !str.isEmpty())
                 .map(element -> elementResolver.resolve(element, registry))
-                .collect(Collectors.toSet());
+                .collect(Collectors.toSet()));
         } else {
             throw new IllegalArgumentException();
         }
+    }
+
+    @Override
+    public boolean isStruct() {
+        return false;
     }
 }

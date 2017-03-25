@@ -40,14 +40,14 @@ public class ConfigurationTest {
             })
             .build();
         
-        config.getPropertySource().forEach(s -> {
-            System.out.println("Source : " + s);
-            s.forEach((key, value) -> System.out.println("  " + key + " : "+ value));
-        });
-        
-
         settable.setProperty("foo", "bar");
         
+//        config.getPropertySource().forEach(s -> {
+//            System.out.println("Source : " + s);
+//            s.forEach((key, value) -> System.out.println("  " + key + " : "+ value));
+//        });
+        
+        System.out.println(config.getPropertyResolver().getMap("", String.class, String.class));
         Assert.assertEquals(123, config.getPropertyResolver().getInteger("a").get().intValue());
     }
 }

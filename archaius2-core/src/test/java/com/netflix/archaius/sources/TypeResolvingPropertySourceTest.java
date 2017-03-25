@@ -3,7 +3,8 @@ package com.netflix.archaius.sources;
 import com.netflix.archaius.api.annotations.DefaultValue;
 import com.netflix.archaius.api.annotations.PropertyName;
 import com.netflix.config.api.PropertySource;
-import com.netflix.config.sources.DefaultPropertyResolver;
+import com.netflix.config.resolver.DefaultPropertyResolver;
+import com.netflix.config.resolver.DefaultTypeResolverRegistry;
 import com.netflix.config.sources.ImmutablePropertySource;
 
 import org.junit.Test;
@@ -41,8 +42,8 @@ public class TypeResolvingPropertySourceTest {
                 .put("foo.map.a3", "${value}")
                 .build();
         
-        DefaultPropertyResolver configuration = new DefaultPropertyResolver(source);
-        Foo foo = configuration.get("foo", Foo.class).get();
+        DefaultPropertyResolver configuration = new DefaultPropertyResolver(source, new DefaultTypeResolverRegistry());
+        Foo foo = configuration.getProperty("foo", Foo.class).get();
 
         System.out.println(foo);
     }

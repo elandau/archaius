@@ -90,6 +90,10 @@ public class ImmutablePropertySource implements PropertySource {
         }
     }
     
+    public static ImmutablePropertySource singleton(String key, Object value) {
+        return builder().put(key, value).build();
+    }
+    
     public static Builder builder() {
         return new Builder();
     }

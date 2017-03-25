@@ -33,11 +33,18 @@ public final class ListTypeResolver implements TypeResolver<List<?>> {
         TypeResolver<?> elementResolver = registry.get(elementType);
         
         if (value instanceof String) {
-            return Arrays.stream(((String)value).split(","))
+            return Collections.unmodifiableList(Arrays.stream(((String)value).split(","))
+                .map(String::trim)
+                .filter(str -> !str.isEmpty())
                 .map(element -> elementResolver.resolve(element, registry))
-                .collect(Collectors.toList());
+                .collect(Collectors.toList()));
         } else {
             throw new IllegalArgumentException();
         }
+    }
+
+    @Override
+    public boolean isStruct() {
+        return false;
     }
 }

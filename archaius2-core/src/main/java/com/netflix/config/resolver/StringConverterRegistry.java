@@ -1,4 +1,4 @@
-package com.netflix.archaius;
+package com.netflix.config.resolver;
 
 import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
@@ -27,7 +27,7 @@ import java.util.function.Function;
 
 import javax.xml.bind.DatatypeConverter;
 
-public class StringConverterRegistry {
+class StringConverterRegistry {
 
     public static final Map<Type, Function<String, ?>> DEFAULT_CONVERTERS = new IdentityHashMap<>(75);
     

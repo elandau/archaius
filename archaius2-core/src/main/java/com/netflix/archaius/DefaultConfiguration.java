@@ -7,15 +7,18 @@ import com.netflix.config.api.PropertySource;
 import com.netflix.config.api.SortedCompositePropertySource;
 import com.netflix.config.api.SortedCompositePropertySource.Layer;
 import com.netflix.config.api.TypeResolver;
+import com.netflix.config.resolver.DefaultPropertyResolver;
 import com.netflix.config.resolver.DefaultTypeResolverRegistry;
-import com.netflix.config.sources.DefaultPropertyResolver;
 import com.netflix.config.sources.DefaultSortedCompositePropertySource;
 import com.netflix.config.sources.InterpolatingPropertySource;
 import com.netflix.config.sources.formats.BundleToPropertySource;
 import com.netflix.config.sources.formats.PropertySourceFactoryContext;
 
+import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 
 /**
@@ -25,7 +28,18 @@ public class DefaultConfiguration implements Configuration {
 
     public static class Builder {
         private final List<Consumer<DefaultConfiguration>> consumers = new ArrayList<>();
+        private final Map<Type, TypeResolver<?>> resolvers = new HashMap<>();
         private PropertySourceFactoryContext propertySourceContext = PropertySourceFactoryContext.DEFAULT;
+        
+        public <T> Builder registerType(Class<T> type, TypeResolver<T> resolver) {
+            resolvers.put(type, resolver);
+            return this;
+        }
+        
+        public <T> Builder registerType(Type type, TypeResolver<T> resolver) {
+            resolvers.put(type, resolver);
+            return this;
+        }
         
         public Builder configure(Consumer<DefaultConfiguration> consumer) {
             this.consumers.add(consumer);
@@ -36,7 +50,7 @@ public class DefaultConfiguration implements Configuration {
             DefaultConfiguration config = new DefaultConfiguration(
                     new DefaultSortedCompositePropertySource("root"),
                     propertySourceContext,
-                    new DefaultTypeResolverRegistry()
+                    new DefaultTypeResolverRegistry(resolvers)
                     );
             
             consumers.forEach(c -> c.accept(config));
