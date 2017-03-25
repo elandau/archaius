@@ -10,9 +10,12 @@ import com.netflix.config.api.TypeResolver;
 import com.netflix.config.resolver.DefaultPropertyResolver;
 import com.netflix.config.resolver.DefaultTypeResolverRegistry;
 import com.netflix.config.sources.DefaultSortedCompositePropertySource;
+import com.netflix.config.sources.ImmutablePropertySource;
 import com.netflix.config.sources.InterpolatingPropertySource;
-import com.netflix.config.sources.formats.BundleToPropertySource;
 import com.netflix.config.sources.formats.PropertySourceFactoryContext;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -20,23 +23,26 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Main configuration API both to set up a configuration structure as well as to read properties.
  */
 public class DefaultConfiguration implements Configuration {
-
+    private static final Logger LOG = LoggerFactory.getLogger(DefaultConfiguration.class);
+    
     public static class Builder {
         private final List<Consumer<DefaultConfiguration>> consumers = new ArrayList<>();
         private final Map<Type, TypeResolver<?>> resolvers = new HashMap<>();
         private PropertySourceFactoryContext propertySourceContext = PropertySourceFactoryContext.DEFAULT;
         
-        public <T> Builder registerType(Class<T> type, TypeResolver<T> resolver) {
+        public <T> Builder registerTypeResolver(Class<T> type, TypeResolver<T> resolver) {
             resolvers.put(type, resolver);
             return this;
         }
         
-        public <T> Builder registerType(Type type, TypeResolver<T> resolver) {
+        public <T> Builder registerTypeResolver(Type type, TypeResolver<T> resolver) {
             resolvers.put(type, resolver);
             return this;
         }
@@ -92,9 +98,26 @@ public class DefaultConfiguration implements Configuration {
 
     @Override
     public void addBundle(Layer layer, Bundle bundle) {
-        addPropertySource(layer, new BundleToPropertySource().load(bundle, propertySourceContext));
+        addPropertySource(layer, ImmutablePropertySource.builder()
+            .named(bundle.getName())
+            .putSources(
+                bundle.getCascadeGenerator().apply(bundle.getName())
+                .stream()
+                .flatMap(name -> propertySourceContext.getFormats().stream()
+                    .flatMap(factory -> propertySourceContext.getResolvers().stream()
+                        .flatMap(resolver -> {
+                            String interpolatedUrl = propertySourceContext.getInterpolator().apply(name + "." + factory.getExtension());
+                            LOG.info("Loading url {}", interpolatedUrl);
+                            return resolver
+                                .apply(interpolatedUrl).stream()
+                                .map(url -> factory.read(url, propertySourceContext))
+                                .flatMap(optional -> optional.isPresent() ? Stream.of(optional.get()) : Stream.empty())
+                                ;
+                        })))
+                .collect(Collectors.toList()))
+            .build());
     }
-
+    
     @Override
     public SortedCompositePropertySource getPropertySource() {
         return source;
