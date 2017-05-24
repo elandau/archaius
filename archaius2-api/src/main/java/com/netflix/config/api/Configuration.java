@@ -1,13 +1,33 @@
 package com.netflix.config.api;
 
-import com.netflix.config.api.SortedCompositePropertySource.Layer;
-
+/**
+ * Top level configuration API users interact with.  
+ */
 public interface Configuration {
+    /**
+     * Add a PropertySource at a specific Layer
+     * 
+     * @param layer
+     * @param source
+     */
     void addPropertySource(Layer layer, PropertySource source);
     
-    void addBundle(Layer layer, Bundle bundle);
+    /**
+     * Add a named bundle 
+     * 
+     * @param layer
+     * @param spec
+     */
+    void addPropertySourceSpec(Layer layer, PropertySourceSpec spec);
     
+    /**
+     * 
+     * @return
+     */
     PropertyResolver getPropertyResolver();
-    
-    SortedCompositePropertySource getPropertySource();
+
+    /**
+     * @return PropertySource backing this configuration
+     */
+    PropertySource getPropertySource();
 }

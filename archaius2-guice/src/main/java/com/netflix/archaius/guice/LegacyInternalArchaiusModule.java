@@ -5,6 +5,7 @@ import com.google.inject.Inject;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
 import com.netflix.archaius.ConfigProxyFactory;
+import com.netflix.archaius.DefaultConfiguration;
 import com.netflix.archaius.DefaultDecoder;
 import com.netflix.archaius.DefaultPropertyFactory;
 import com.netflix.archaius.api.CascadeStrategy;
@@ -18,12 +19,9 @@ import com.netflix.archaius.api.inject.RuntimeLayer;
 import com.netflix.archaius.config.ConfigToPropertySource;
 import com.netflix.archaius.config.ConfigurationToConfigAdapter;
 import com.netflix.archaius.config.DefaultSettableConfig;
-import com.netflix.config.api.Bundle;
+import com.netflix.config.api.PropertySourceSpec;
 import com.netflix.config.api.Configuration;
 import com.netflix.config.api.Layers;
-import com.netflix.config.api.PropertySource;
-import com.netflix.config.sources.DefaultSortedCompositePropertySource;
-import com.netflix.config.sources.formats.BundleToPropertySource;
 import com.netflix.governator.providers.Advises;
 
 import java.util.Collections;
@@ -102,28 +100,29 @@ public final class LegacyInternalArchaiusModule extends AbstractModule {
 
     @Advises(order = LEGACY_ADVICE_ORDER)
     @Singleton
-    UnaryOperator<DefaultSortedCompositePropertySource> adviseOptionalOverrideLayer(ConfigParameters params) throws Exception {
-        return source -> {
-            BundleToPropertySource factory = new BundleToPropertySource(source);
-            
+    UnaryOperator<DefaultConfiguration.Builder> adviseOptionalOverrideLayer(ConfigParameters params) throws Exception {
+        return builder -> builder.configure(defaultConfiguration -> {
             params.getDefaultConfigs()
-                .forEach(config -> source.addPropertySource(Layers.ENVIRONMENT_DEFAULTS, new ConfigToPropertySource("", config)));
+                .forEach(config -> defaultConfiguration.addPropertySource(
+                        Layers.DEFAULTS, 
+                        new ConfigToPropertySource(getUniqueName("default"), config)));
             
             params.getOverrideResources()
-                .forEach(resourceName -> source.addPropertySource(Layers.OVERRIDE, factory.apply(new Bundle(resourceName, null /* TODO */))));
+                .forEach(resourceName -> defaultConfiguration.addPropertySourceSpec(Layers.OVERRIDE, PropertySourceSpec.create(resourceName)));
             
             String applicationName = params.getConfigName().orElse("application");
-            source.addPropertySource(Layers.APPLICATION, factory.apply(new Bundle(applicationName, null /* TODO */)));
+            
+            defaultConfiguration.addPropertySourceSpec(Layers.APPLICATION, PropertySourceSpec.create(applicationName));
             
             params.getApplicationOverride()
-                .ifPresent(provider -> source.addPropertySource(Layers.APPLICATION_OVERRIDE, new ConfigToPropertySource("", provider.get())));
+                .ifPresent(provider -> defaultConfiguration.addPropertySource(
+                        Layers.APPLICATION_OVERRIDE, 
+                        new ConfigToPropertySource(getUniqueName("override"), provider.get())));
             
 //            params.getRemoteLayer()
 //                .ifPresent(provider -> source.addPropertySource(Layers.REMOTE_OVERRIDE, (config) ->
 //                        config.addConfigToLayer(Layers.REMOTE_OVERRIDE, "", provider.get())));
-            
-            return source;
-        };
+        });
     }
 
 //    @Provides
@@ -137,7 +136,7 @@ public final class LegacyInternalArchaiusModule extends AbstractModule {
     @Provides
     @Singleton
     @Deprecated
-    Config getConfiguration(Configuration<? extends PropertySource> configuration) {
+    Config getConfiguration(Configuration configuration) {
         return new ConfigurationToConfigAdapter(configuration);
     }
     

@@ -1,11 +1,11 @@
 package com.netflix.archaius;
 
-import com.netflix.config.api.Bundle;
+import com.netflix.config.api.PropertySourceSpec;
 import com.netflix.config.api.Configuration;
+import com.netflix.config.api.Layer;
 import com.netflix.config.api.PropertyResolver;
 import com.netflix.config.api.PropertySource;
 import com.netflix.config.api.SortedCompositePropertySource;
-import com.netflix.config.api.SortedCompositePropertySource.Layer;
 import com.netflix.config.api.TypeResolver;
 import com.netflix.config.resolver.DefaultPropertyResolver;
 import com.netflix.config.resolver.DefaultTypeResolverRegistry;
@@ -97,7 +97,7 @@ public class DefaultConfiguration implements Configuration {
     }
 
     @Override
-    public void addBundle(Layer layer, Bundle bundle) {
+    public void addPropertySourceSpec(Layer layer, PropertySourceSpec bundle) {
         addPropertySource(layer, ImmutablePropertySource.builder()
             .named(bundle.getName())
             .putSources(

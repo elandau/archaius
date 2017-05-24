@@ -1,6 +1,6 @@
 package com.netflix.archaius;
 
-import com.netflix.config.api.Bundle;
+import com.netflix.config.api.PropertySourceSpec;
 import com.netflix.config.api.Layers;
 import com.netflix.config.sources.ImmutablePropertySource;
 import com.netflix.config.sources.PropertySources;
@@ -12,7 +12,7 @@ import org.junit.Test;
 import java.util.Arrays;
 
 public class ConfigurationTest {
-    private static Bundle.CascadeGenerator CASCADE_STRATEGY = t -> Arrays.asList(t, t + "-${env}");
+    private static PropertySourceSpec.CascadeGenerator CASCADE_STRATEGY = t -> Arrays.asList(t, t + "-${env}");
     
     @Test
     public void test() {
@@ -28,8 +28,8 @@ public class ConfigurationTest {
                         .build());
                 c.addPropertySource(Layers.ENVIRONMENT, PropertySources.environment());
                 c.addPropertySource(Layers.SYSTEM, PropertySources.system());
-                c.addBundle(Layers.APPLICATION, Bundle.create("application", CASCADE_STRATEGY));
-                c.addBundle(Layers.LIBRARIES, Bundle.create("libA", CASCADE_STRATEGY));
+                c.addPropertySourceSpec(Layers.APPLICATION, PropertySourceSpec.create("application", CASCADE_STRATEGY));
+                c.addPropertySourceSpec(Layers.LIBRARIES, PropertySourceSpec.create("libA", CASCADE_STRATEGY));
             })
             .build();
         

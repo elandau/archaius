@@ -5,18 +5,18 @@ import com.google.inject.Provides;
 import com.google.inject.Singleton;
 import com.netflix.archaius.DefaultConfiguration;
 import com.netflix.config.api.Configuration;
-import com.netflix.config.api.SortedCompositePropertySource;
 import com.netflix.config.api.Layers;
+import com.netflix.config.api.MutablePropertySource;
 import com.netflix.config.api.PropertyResolver;
-import com.netflix.config.api.PropertySource;
-import com.netflix.config.sources.DefaultSortedCompositePropertySource;
-import com.netflix.config.sources.EnvironmentPropertySource;
-import com.netflix.config.sources.SystemPropertySource;
+import com.netflix.config.sources.PropertySources;
+import com.netflix.config.sources.SynchronizedMutablePropertySource;
 import com.netflix.governator.providers.AdvisableAnnotatedMethodScanner;
 import com.netflix.governator.providers.Advises;
 import com.netflix.governator.providers.ProvidesWithAdvice;
 
 import java.util.function.UnaryOperator;
+
+import javax.inject.Named;
 
 /**
  * Base module to set up Archaius inside Guice.  Archaius setup is split into several bindings
@@ -31,42 +31,38 @@ final class InternalArchaiusModule extends AbstractModule {
         install(ConfigurationInjectingListener.asModule());
     }
     
+    @Provides
+    @Singleton
+    PropertyResolver getPropertySource(Configuration configuration) {
+        return configuration.getPropertyResolver();
+    }
+    
+    @Provides
+    @Singleton
+    Configuration getDefaultConfiguration(DefaultConfiguration.Builder builder) {
+        return builder.build();
+    }
+    
     @ProvidesWithAdvice
     @Singleton
-    SortedCompositePropertySource getLayeredPropertySource() {
-        return new DefaultSortedCompositePropertySource("root");
+    DefaultConfiguration.Builder getDefaultConfigurationBuilder() {
+        return DefaultConfiguration.builder();
     }
     
     @Provides
     @Singleton
-    PropertySource getPropertySource(SortedCompositePropertySource source) {
-        return source;
+    @Named("override")
+    MutablePropertySource getMutablePropertySource() {
+        return new SynchronizedMutablePropertySource("override");
     }
     
-    @Provides
-    @Singleton
-    DefaultConfiguration getDefaultConfiguration(SortedCompositePropertySource propertySource) {
-        return new DefaultConfiguration(propertySource);
-    }
-    
-    @Provides
-    @Singleton
-    Configuration<? extends PropertySource> getConfiguration(DefaultConfiguration configuration) {
-        return configuration; 
-    }
-    
-    @Provides
-    @Singleton
-    PropertyResolver getPropertyResolver(DefaultConfiguration configuration) {
-        return configuration;
-    }
-
     @Advises(order = 0)
     @Singleton
-    UnaryOperator<DefaultConfiguration> defaultAdvice() {
+    UnaryOperator<DefaultConfiguration> defaultAdvice(@Named("override") MutablePropertySource override) {
         return config -> {
-            config.getPropertySource().addPropertySource(Layers.ENVIRONMENT, EnvironmentPropertySource.INSTANCE);
-            config.getPropertySource().addPropertySource(Layers.SYSTEM, SystemPropertySource.INSTANCE);
+            config.getPropertySource().addPropertySource(Layers.ENVIRONMENT, PropertySources.environment());
+            config.getPropertySource().addPropertySource(Layers.SYSTEM, PropertySources.system());
+            config.getPropertySource().addPropertySource(Layers.OVERRIDE, override);
             return config;
         };
     }

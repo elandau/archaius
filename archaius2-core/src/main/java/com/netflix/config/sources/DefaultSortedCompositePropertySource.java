@@ -1,6 +1,7 @@
 package com.netflix.config.sources;
 
 import com.netflix.archaius.internal.WeakReferenceSet;
+import com.netflix.config.api.Layer;
 import com.netflix.config.api.PropertySource;
 import com.netflix.config.api.SortedCompositePropertySource;
 

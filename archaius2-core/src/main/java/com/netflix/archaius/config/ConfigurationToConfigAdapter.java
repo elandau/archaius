@@ -1,10 +1,10 @@
 package com.netflix.archaius.config;
 
-import com.netflix.archaius.DefaultConfiguration;
 import com.netflix.archaius.api.Config;
 import com.netflix.archaius.api.ConfigListener;
 import com.netflix.archaius.api.Decoder;
 import com.netflix.archaius.api.StrInterpolator;
+import com.netflix.config.api.Configuration;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -16,9 +16,9 @@ import java.util.function.BiConsumer;
  */
 public class ConfigurationToConfigAdapter implements Config {
 
-    private final DefaultConfiguration configuration;
+    private final Configuration configuration;
     
-    public ConfigurationToConfigAdapter(DefaultConfiguration configuration) {
+    public ConfigurationToConfigAdapter(Configuration configuration) {
         this.configuration = configuration;
     }
     

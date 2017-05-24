@@ -1,7 +1,5 @@
 package com.netflix.config.api;
 
-import com.netflix.config.api.SortedCompositePropertySource.Layer;
-
 /**
  * Set of pre-defined configuration override layers that should be realistic for most applications
  * and tests

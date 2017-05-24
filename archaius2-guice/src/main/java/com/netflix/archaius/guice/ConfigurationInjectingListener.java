@@ -6,21 +6,19 @@ import com.google.inject.Module;
 import com.google.inject.matcher.Matchers;
 import com.google.inject.spi.ProvisionListener;
 import com.netflix.archaius.ConfigMapper;
-import com.netflix.archaius.api.CascadeStrategy;
-import com.netflix.archaius.api.StrInterpolator;
 import com.netflix.archaius.api.annotations.ConfigurationSource;
-import com.netflix.archaius.cascade.NoCascadeStrategy;
-import com.netflix.archaius.interpolate.CommonsStrInterpolator;
-import com.netflix.config.api.Bundle;
+import com.netflix.config.api.PropertySourceSpec;
+import com.netflix.config.api.PropertySourceSpec.CascadeGenerator;
+import com.netflix.config.api.Configuration;
 import com.netflix.config.api.Layers;
-import com.netflix.config.api.PropertySource;
-import com.netflix.config.sources.DefaultSortedCompositePropertySource;
-import com.netflix.config.sources.formats.BundleToPropertySource;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
+import java.util.function.Function;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -32,24 +30,15 @@ public class ConfigurationInjectingListener implements ProvisionListener {
     @Inject
     private Injector injector;
     
-    @com.google.inject.Inject(optional=true)
-    private CascadeStrategy cascadeStrategy = new NoCascadeStrategy();
+    private Configuration configuration;
+    private CascadeGenerator cascadeGenerator;
     
-    private StrInterpolator.Lookup lookup;
-    private StrInterpolator interpolator;
-    
-    private DefaultSortedCompositePropertySource mainSource;
-    private BundleToPropertySource factory;
     private ConfigMapper mapper = new ConfigMapper();
     
     @Inject
-    private void setLayeredPropertySource(DefaultSortedCompositePropertySource mainSource) {
-        this.mainSource = mainSource;
-        
-        this.factory = new BundleToPropertySource(mainSource);
-        
-        StrInterpolator.Lookup lookup = key -> mainSource.getProperty(key).map(Object::toString).orElse(null);
-        this.interpolator = value -> CommonsStrInterpolator.INSTANCE.create(lookup);
+    private void setLayeredPropertySource(Configuration configuration, CascadeGenerator cascadeGenerator) {
+        this.configuration = configuration;
+        this.cascadeGenerator = cascadeGenerator;
     }    
     
     @Inject
@@ -74,15 +63,21 @@ public class ConfigurationInjectingListener implements ProvisionListener {
             Arrays.asList(source.value()).forEach(bundleName -> {
                 LOG.debug("Trying to loading configuration bundle {}", bundleName);
                 
-                Bundle bundle = new Bundle(bundleName, (name) -> {
-                    CascadeStrategy strategy = source.cascading() != ConfigurationSource.NullCascadeStrategy.class
-                        ? injector.getInstance(source.cascading())
-                        : cascadeStrategy;
-                    return strategy.generate(bundleName, interpolator, lookup);
-                });
                 
-                PropertySource loadedPropertySource = factory.apply(bundle);
-                mainSource.addPropertySource(Layers.LIBRARIES, loadedPropertySource);
+                PropertySourceSpec bundle = PropertySourceSpec.create(
+                        bundleName, 
+                        Optional
+                            .ofNullable(source.cascading())
+                            .map(injector::getInstance)
+                            .map(strategy -> strategy.generate(bundleName, lookup -> str -> str, str -> str))
+                            .map(new Function<List<String>, CascadeGenerator>() {
+                                @Override
+                                public CascadeGenerator apply(List<String> list) {
+                                    return str -> list;
+                                }
+                            }).orElse(null));
+                
+                configuration.addPropertySourceSpec(Layers.LIBRARIES, bundle);
             });
         }
         
