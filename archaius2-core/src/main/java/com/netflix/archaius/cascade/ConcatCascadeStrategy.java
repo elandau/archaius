@@ -30,9 +30,6 @@ import com.netflix.archaius.api.StrInterpolator;
  * ${name}-${param1}
  * ${name}-${param1}-${param2}
  * ${name}-${param1}-${param2}-${param3}
- * 
- * @author elandau
- *
  */
 public class ConcatCascadeStrategy implements CascadeStrategy {
     private static final String DEFAULT_SEPARATOR = "-";

@@ -5,9 +5,8 @@ import com.netflix.archaius.api.StrInterpolator.Lookup;
 
 /**
  * Interpolator lookup using a Config as the source
- * @author elandau
- *
  */
+@Deprecated
 public class ConfigStrLookup implements Lookup {
 
     private Config config;

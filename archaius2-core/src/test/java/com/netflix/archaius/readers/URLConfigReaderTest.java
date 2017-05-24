@@ -3,8 +3,6 @@ package com.netflix.archaius.readers;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.net.MalformedURLException;
-
 /**
  * @author Nikos Michalakis <nikos@netflix.com>
  */

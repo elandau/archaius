@@ -12,9 +12,6 @@ import java.util.LinkedHashMap;
  * treats them as overrides so that a property existing in a configuration supersedes
  * the same property in configuration based on some ordering.  Implementations of this
  * interface should specify and implement the override ordering.
- *
- * @author David Liu
- *
  */
 public interface CompositeConfig extends Config {
 

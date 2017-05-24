@@ -6,10 +6,10 @@ import org.apache.commons.configuration.PropertiesConfiguration;
 import org.junit.Assert;
 import org.junit.Test;
 
-import com.netflix.archaius.config.MapConfig;
+import com.netflix.config.sources.ImmutablePropertySource;
 
 public class ConfigToCommonsTest {
-    private ConfigToCommonsAdapter config = new ConfigToCommonsAdapter(MapConfig.builder()
+    private PropertySourceToCommonsAdapter config = new PropertySourceToCommonsAdapter(ImmutablePropertySource.builder()
             .put("boolean", true)
             .put("string", "set")
             .put("interpolated", "${string}")
@@ -38,7 +38,7 @@ public class ConfigToCommonsTest {
     
     @Test(expected=NoSuchElementException.class)
     public void configNonExistentKeyWorks() {
-        Assert.assertNull(config.getString("nonexistent", null));
+        Assert.assertNull(config.getString("nonexistent"));
     }
     
     @Test(expected=UnsupportedOperationException.class)

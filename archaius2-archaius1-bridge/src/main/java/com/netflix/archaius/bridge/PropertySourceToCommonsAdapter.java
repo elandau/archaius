@@ -4,7 +4,7 @@ import java.util.Iterator;
 
 import org.apache.commons.configuration.AbstractConfiguration;
 
-import com.netflix.archaius.api.Config;
+import com.netflix.config.api.PropertySource;
 
 /**
  * Adapter from an Archaius2 configuration to an Apache Commons Configuration.
@@ -14,32 +14,32 @@ import com.netflix.archaius.api.Config;
  * 
  * @author elandau
  */
-class ConfigToCommonsAdapter extends AbstractConfiguration {
+class PropertySourceToCommonsAdapter extends AbstractConfiguration {
 
-    private Config config;
+    private PropertySource propetySource;
 
-    public ConfigToCommonsAdapter(Config config) {
-        this.config = config;
+    public PropertySourceToCommonsAdapter(PropertySource propetySource) {
+        this.propetySource = propetySource;
     }
     
     @Override
     public boolean isEmpty() {
-        return config.isEmpty();
+        return propetySource.isEmpty();
     }
 
     @Override
     public boolean containsKey(String key) {
-        return config.containsKey(key);
+        return propetySource.getProperty(key).isPresent();
     }
 
     @Override
     public Object getProperty(String key) {
-        return config.getString(key);
+        return propetySource.getProperty(key).orElse(null);
     }
 
     @Override
     public Iterator<String> getKeys() {
-        return config.getKeys();
+        return propetySource.getKeys().iterator();
     }
 
     @Override

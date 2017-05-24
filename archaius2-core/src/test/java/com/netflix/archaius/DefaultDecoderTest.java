@@ -38,8 +38,6 @@ import javax.xml.bind.DatatypeConverter;
 import org.junit.Assert;
 import org.junit.Test;
 
-import com.netflix.archaius.DefaultDecoder;
-
 public class DefaultDecoderTest {
     @Test
     public void testJavaNumbers() {

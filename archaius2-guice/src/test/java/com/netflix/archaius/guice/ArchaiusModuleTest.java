@@ -19,8 +19,6 @@ import java.util.Properties;
 
 import javax.inject.Inject;
 
-import com.netflix.archaius.DefaultConfigLoader;
-import com.netflix.archaius.api.exceptions.ConfigException;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -30,7 +28,6 @@ import com.google.inject.Injector;
 import com.google.inject.Key;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
-import com.google.inject.multibindings.MapBinder;
 import com.google.inject.name.Names;
 import com.netflix.archaius.ConfigMapper;
 import com.netflix.archaius.ConfigProxyFactory;
@@ -39,9 +36,7 @@ import com.netflix.archaius.api.Property;
 import com.netflix.archaius.api.annotations.Configuration;
 import com.netflix.archaius.api.annotations.ConfigurationSource;
 import com.netflix.archaius.api.annotations.DefaultValue;
-import com.netflix.archaius.api.config.CompositeConfig;
 import com.netflix.archaius.api.config.SettableConfig;
-import com.netflix.archaius.api.inject.LibrariesLayer;
 import com.netflix.archaius.api.inject.RuntimeLayer;
 import com.netflix.archaius.cascade.ConcatCascadeStrategy;
 import com.netflix.archaius.config.MapConfig;
@@ -123,17 +118,12 @@ public class ArchaiusModuleTest {
         props.setProperty("env", "prod");
         
         Injector injector = Guice.createInjector(
-                new ArchaiusModule() {
-                    @Override
-                    protected void configureArchaius() {
-                        bindApplicationConfigurationOverride().toInstance(MapConfig.from(props));
-                    }
-                });
+            new ArchaiusModule()
+                .withApplicationOverrides(props)
+            );
         
         Config config = injector.getInstance(Config.class);
         Assert.assertEquals("prod", config.getString("env"));
-        
-        config.accept(new PrintStreamVisitor(System.err));
         
         MyService service = injector.getInstance(MyService.class);
         Assert.assertTrue(service.getValue());
@@ -155,20 +145,16 @@ public class ArchaiusModuleTest {
         props.setProperty("env", "prod");
         
         Injector injector = Guice.createInjector(
-                new ArchaiusModule() {
-                    @Override
-                    protected void configureArchaius() {
-                        bindApplicationConfigurationOverride().toInstance(MapConfig.from(props));
-                    }
-                },
-                new AbstractModule() {
-                    @Override
-                    protected void configure() {
-                        bind(Named.class).annotatedWith(Names.named("name1")).to(Named1.class);
-                        bind(Named.class).annotatedWith(Names.named("name2")).to(Named2.class);
-                    }
+              new ArchaiusModule()
+                  .withApplicationOverrides(props)
+            , new AbstractModule() {
+                @Override
+                protected void configure() {
+                    bind(Named.class).annotatedWith(Names.named("name1")).to(Named1.class);
+                    bind(Named.class).annotatedWith(Names.named("name2")).to(Named2.class);
                 }
-            );
+            }
+        );
             
         MyService service = injector.getInstance(MyService.class);
         Assert.assertTrue(service.getValue());
@@ -237,7 +223,6 @@ public class ArchaiusModuleTest {
         settableConfig.setProperty("string", "new");
         settableConfig.setProperty("stringArray", "foonew,barnew");
         settableConfig.setProperty("intArray", "3,4");
-        config.accept(new PrintStreamVisitor());
         
         Assert.assertEquals("new", object.getString());
         Assert.assertArrayEquals(new String[]{"foonew", "barnew"}, object.getStringArray());
@@ -254,7 +239,6 @@ public class ArchaiusModuleTest {
             );
         
         injector.getInstance(Key.get(SettableConfig.class, RuntimeLayer.class));
-        injector.getInstance(Key.get(CompositeConfig.class, LibrariesLayer.class));
         injector.getInstance(Config.class);
     }
     
@@ -264,12 +248,9 @@ public class ArchaiusModuleTest {
         props.setProperty("a", "override");
         
         Injector injector = Guice.createInjector(
-                new ArchaiusModule() {
-                    @Override
-                    protected void configureArchaius() {
-                        bindApplicationConfigurationOverride().toInstance(MapConfig.from(props));
-                    }
-                });
+            new ArchaiusModule()
+                .withApplicationOverrides(props)
+            );
         
         Config config = injector.getInstance(Config.class);
         Assert.assertEquals("override", config.getString("a"));
@@ -293,25 +274,13 @@ public class ArchaiusModuleTest {
         props.setProperty("moduleTest.prop1", "fromOverride");
         
         Injector injector = Guice.createInjector(
-              new ArchaiusModule() {
-                  @Override
-                  protected void configureArchaius() {
-                      bindApplicationConfigurationOverride().toInstance(MapConfig.from(props));
-                  }
-              },
-              new AbstractModule() {
-                    @Override
-                    protected void configure() {
-                        MapBinder.newMapBinder(binder(), String.class, Config.class, LibrariesLayer.class)
-                            .addBinding("moduleTest")
-                            .toInstance(MapConfig.from(props));
-                    }
-                }
+            new ArchaiusModule()
+                .withApplicationOverrides(props)
             );
         
         Config config = injector.getInstance(Config.class);
         injector.getInstance(MyServiceConfig.class);
-        config.accept(new PrintStreamVisitor());
+        
         Assert.assertEquals("fromOverride", config.getString("moduleTest.prop1"));
     }
 
@@ -321,19 +290,13 @@ public class ArchaiusModuleTest {
         props.setProperty("a", "override");
 
         Injector injector = Guice.createInjector(
-                new ArchaiusModule() {
-                    @Override
-                    protected void configureArchaius() {
-                        bindApplicationConfigurationOverride().toInstance(MapConfig.from(props));
-                    }
-                },
-                new ArchaiusModule() {
-                    @Provides
-                    @Singleton
-                    public TestProxyConfig getProxyConfig(ConfigProxyFactory factory) {
-                        return factory.newProxy(TestProxyConfig.class);
-                    }
+            new ArchaiusModule() {
+                @Provides
+                @Singleton
+                public TestProxyConfig getProxyConfig(ConfigProxyFactory factory) {
+                    return factory.newProxy(TestProxyConfig.class);
                 }
+            }.withApplicationOverrides(props)
         );
 
         Config config = injector.getInstance(Config.class);
@@ -347,15 +310,16 @@ public class ArchaiusModuleTest {
 
     @Test
     public void testAddingConfigFileOverride() {
-        Injector injector = Guice.createInjector(new ArchaiusModule() {
-            @Override
-            protected void configureArchaius() {
-                bindApplicationConfigurationOverrideResource("application-override");
-           }
-        });
+        Injector injector = Guice.createInjector(new ArchaiusModule()
+//            .configure(builder -> builder.addPropertySource(Layers.APPLICATION_OVERRIDE, "application-override"))
+        );
         Config config = injector.getInstance(Config.class);
+        
         Assert.assertEquals("b_value_no_override", config.getString("b"));
         Assert.assertEquals("a_value_override", config.getString("a"));
         Assert.assertEquals("c_value_override", config.getString("c"));
+        
+        config.accept(new PrintStreamVisitor());
     }
+    
 }

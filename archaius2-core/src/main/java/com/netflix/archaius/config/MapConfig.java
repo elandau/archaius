@@ -15,16 +15,17 @@
  */
 package com.netflix.archaius.config;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
+import java.util.function.BiConsumer;
 
 /**
  * Config backed by an immutable map.
  */
+@Deprecated
 public class MapConfig extends AbstractConfig {
 
     /**
@@ -38,7 +39,6 @@ public class MapConfig extends AbstractConfig {
      *      .build()
      * </pre>
      * }
-     * @author elandau
      */
     public static class Builder {
         Map<String, String> map = new HashMap<String, String>();
@@ -65,7 +65,7 @@ public class MapConfig extends AbstractConfig {
         return new MapConfig(props);
     }
     
-    private Map<String, String> props = new HashMap<String, String>();
+    private final Map<String, String> props;
     
     /**
      * Construct a MapConfig as a copy of the provided Map
@@ -73,8 +73,7 @@ public class MapConfig extends AbstractConfig {
      * @param props
      */
     public MapConfig(Map<String, String> props) {
-        this.props.putAll(props);
-        this.props = Collections.unmodifiableMap(this.props);
+        this.props = new HashMap<>(props);
     }
 
     /**
@@ -83,10 +82,10 @@ public class MapConfig extends AbstractConfig {
      * @param props
      */
     public MapConfig(Properties props) {
+        this.props = new HashMap<>();
         for (Entry<Object, Object> entry : props.entrySet()) {
             this.props.put(entry.getKey().toString(), entry.getValue().toString());
         }
-        this.props = Collections.unmodifiableMap(this.props);
     }
     
     @Override
@@ -109,4 +108,8 @@ public class MapConfig extends AbstractConfig {
         return props.keySet().iterator();
     }
 
+    @Override
+    public void forEach(BiConsumer<String, Object> consumer) {
+        props.forEach(consumer);
+    }
 }

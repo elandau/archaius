@@ -8,6 +8,7 @@ import com.netflix.archaius.api.ConfigListener;
  * @author elandau
  *
  */
+@Deprecated
 public class DefaultConfigListener implements ConfigListener {
 
     @Override

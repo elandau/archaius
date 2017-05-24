@@ -24,16 +24,17 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+import com.netflix.archaius.DefaultDecoder;
 import com.netflix.archaius.api.Config;
 import com.netflix.archaius.api.ConfigListener;
 import com.netflix.archaius.api.Decoder;
-import com.netflix.archaius.DefaultDecoder;
 import com.netflix.archaius.api.StrInterpolator;
 import com.netflix.archaius.api.StrInterpolator.Lookup;
 import com.netflix.archaius.exceptions.ParseException;
 import com.netflix.archaius.interpolate.CommonsStrInterpolator;
 import com.netflix.archaius.interpolate.ConfigStrLookup;
 
+@Deprecated
 public abstract class AbstractConfig implements Config {
 
     private final CopyOnWriteArrayList<ConfigListener> listeners = new CopyOnWriteArrayList<ConfigListener>();
@@ -95,27 +96,19 @@ public abstract class AbstractConfig implements Config {
     }
 
     protected void notifyConfigUpdated(Config child) {
-        for (ConfigListener listener : listeners) {
-            listener.onConfigUpdated(child);
-        }
+        listeners.forEach(listener -> listener.onConfigUpdated(child));
     }
 
     protected void notifyError(Throwable t, Config child) {
-        for (ConfigListener listener : listeners) {
-            listener.onError(t, child);
-        }
+        listeners.forEach(listener -> listener.onError(t, child));
     }
 
     protected void notifyConfigAdded(Config child) {
-        for (ConfigListener listener : listeners) {
-            listener.onConfigAdded(child);
-        }
+        listeners.forEach(listener -> listener.onConfigAdded(child));
     }
 
     protected void notifyConfigRemoved(Config child) {
-        for (ConfigListener listener : listeners) {
-            listener.onConfigRemoved(child);
-        }
+        listeners.forEach(listener -> listener.onConfigRemoved(child));
     }
 
     @Override
@@ -227,6 +220,7 @@ public abstract class AbstractConfig implements Config {
         return result;
     }
 
+    @SuppressWarnings("unchecked")
     protected <T> T getValue(Class<T> type, String key) {
         Object rawProp = getRawProperty(key);
         if (rawProp == null) {
@@ -359,6 +353,7 @@ public abstract class AbstractConfig implements Config {
         return result;
     }
 
+    @SuppressWarnings({ "rawtypes", "unchecked" })
     @Override
     public List getList(String key) {
         String value = getString(key);
@@ -369,6 +364,7 @@ public abstract class AbstractConfig implements Config {
         return Arrays.asList(parts);
     }
 
+    @SuppressWarnings({ "rawtypes", "unchecked" })
     @Override
     public List getList(String key, List defaultValue) {
         String value = getString(key, null);

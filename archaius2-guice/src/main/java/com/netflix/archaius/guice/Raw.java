@@ -14,6 +14,7 @@ import javax.inject.Qualifier;
 @Target({ElementType.TYPE, ElementType.FIELD, ElementType.PARAMETER, ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
 @Qualifier
+@Deprecated
 public @interface Raw {
 
 }

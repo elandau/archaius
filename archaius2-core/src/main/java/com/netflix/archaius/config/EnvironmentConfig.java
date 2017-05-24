@@ -17,7 +17,9 @@ package com.netflix.archaius.config;
 
 import java.util.Iterator;
 import java.util.Map;
+import java.util.function.BiConsumer;
 
+@Deprecated
 public class EnvironmentConfig extends AbstractConfig {
 
     public static final EnvironmentConfig INSTANCE = new EnvironmentConfig();
@@ -46,5 +48,10 @@ public class EnvironmentConfig extends AbstractConfig {
     @Override
     public Iterator<String> getKeys() {
         return properties.keySet().iterator();
+    }
+
+    @Override
+    public void forEach(BiConsumer<String, Object> consumer) {
+        properties.forEach(consumer);
     }
 }

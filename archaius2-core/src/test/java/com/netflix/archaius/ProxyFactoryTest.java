@@ -4,18 +4,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.nullValue;
 
-import com.netflix.archaius.api.Config;
-import com.netflix.archaius.api.PropertyFactory;
-import com.netflix.archaius.api.annotations.Configuration;
-import com.netflix.archaius.api.annotations.DefaultValue;
-import com.netflix.archaius.api.annotations.PropertyName;
-import com.netflix.archaius.api.config.SettableConfig;
-import com.netflix.archaius.config.DefaultSettableConfig;
-import com.netflix.archaius.config.EmptyConfig;
-
-import org.junit.Assert;
-import org.junit.Test;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -25,6 +13,18 @@ import java.util.Set;
 import java.util.SortedSet;
 
 import javax.annotation.Nullable;
+
+import org.junit.Assert;
+import org.junit.Test;
+
+import com.netflix.archaius.api.Config;
+import com.netflix.archaius.api.PropertyFactory;
+import com.netflix.archaius.api.annotations.Configuration;
+import com.netflix.archaius.api.annotations.DefaultValue;
+import com.netflix.archaius.api.annotations.PropertyName;
+import com.netflix.archaius.api.config.SettableConfig;
+import com.netflix.archaius.config.DefaultSettableConfig;
+import com.netflix.archaius.config.EmptyConfig;
 
 public class ProxyFactoryTest {
     public static enum TestEnum {

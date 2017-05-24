@@ -16,7 +16,9 @@
 package com.netflix.archaius.config;
 
 import java.util.Iterator;
+import java.util.function.BiConsumer;
 
+@Deprecated
 public class SystemConfig extends AbstractConfig {
 
     public static final SystemConfig INSTANCE = new SystemConfig();
@@ -56,5 +58,10 @@ public class SystemConfig extends AbstractConfig {
                 throw new UnsupportedOperationException();
             }
         };
+    }
+
+    @Override
+    public void forEach(BiConsumer<String, Object> consumer) {
+        System.getProperties().forEach((k, v) -> consumer.accept(k.toString(), v));
     }
 }

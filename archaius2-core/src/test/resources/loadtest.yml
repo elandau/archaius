@@ -1,0 +1,23 @@
+application :
+    server :
+        port : 
+            secure : 9889
+            open : 
+                a : a
+                b : b
+    no_value :
+      - c : [a, b, c]
+      - a : 1
+        b : 2
+      - a : 3
+        b : 4
+    
+            
+application.port : 7000
+
+application[${env}=test] :
+    port : 7001
+    
+application[${env}=prod] :
+    port : 7002
+        

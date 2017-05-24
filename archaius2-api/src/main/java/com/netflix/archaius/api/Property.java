@@ -36,8 +36,6 @@ package com.netflix.archaius.api;
  * TODO: Chain properties
  * TODO: Property validator
  * 
- * @author elandau
- *
  * @param <T>
  */
 public interface Property<T> {

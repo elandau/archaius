@@ -27,16 +27,12 @@ package com.netflix.archaius.api;
  * }
  * </pre>
  * 
- * @author elandau
- *
  */
 public interface StrInterpolator {
     /**
      * Lookup of a raw string for replacements.  The lookup should not do any replacements.
      * If a string with replacements is returned the interpolator will extract the key and
      * call back into the lookup to get the value for that key.
-     * 
-     * @author elandau
      */
     public interface Lookup {
         String lookup(String key);
@@ -44,8 +40,6 @@ public interface StrInterpolator {
 
     /**
      * Top level context 
-     * @author elandau
-     *
      */
     public interface Context {
         /**
@@ -68,8 +62,6 @@ public interface StrInterpolator {
      *    interpolator.create(lookup).resolve("prefix-${foo}");
      * }
      * </pre>
-     * @author elandau
-     *
      */
     Context create(Lookup lookup);
 }

@@ -17,6 +17,7 @@ package com.netflix.archaius.property;
 
 import java.lang.reflect.Method;
 
+@Deprecated
 public class MethodInvoker<T> extends DefaultPropertyListener<T> {
     
     private Method method;

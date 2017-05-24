@@ -15,17 +15,14 @@
  */
 package com.netflix.archaius.cascade;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import com.netflix.archaius.api.CascadeStrategy;
 import com.netflix.archaius.api.StrInterpolator;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Default 'noop' cascade strategy returns only the original resource name
- * 
- * @author elandau
- *
  */
 public class NoCascadeStrategy implements CascadeStrategy {
     public static final CascadeStrategy INSTANCE = new NoCascadeStrategy();

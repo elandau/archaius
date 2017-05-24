@@ -97,7 +97,6 @@ public class DefaultDecoder implements Decoder {
         decoderRegistry.put(BitSet.class, v->BitSet.valueOf(DatatypeConverter.parseHexBinary(v)));
     }
     
-    
     @SuppressWarnings("unchecked")
     @Override
     public <T> T decode(Class<T> type, String encoded) {

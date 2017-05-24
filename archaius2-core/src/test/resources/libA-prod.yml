@@ -1,0 +1,11 @@
+libA : 
+    yaml : 
+        loaded : true
+        
+libA [${env}=test] :
+    conditional: 
+        test : true
+        
+libA [${env}=prod] :
+    conditional: 
+        prod : true

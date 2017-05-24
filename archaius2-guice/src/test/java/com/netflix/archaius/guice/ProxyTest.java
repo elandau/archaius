@@ -1,5 +1,10 @@
 package com.netflix.archaius.guice;
 
+import javax.inject.Singleton;
+
+import org.junit.Assert;
+import org.junit.Test;
+
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.google.inject.Key;
@@ -16,11 +21,6 @@ import com.netflix.archaius.api.inject.RuntimeLayer;
 import com.netflix.archaius.config.MapConfig;
 import com.netflix.archaius.guice.ArchaiusModuleTest.MyCascadingStrategy;
 import com.netflix.archaius.visitor.PrintStreamVisitor;
-
-import org.junit.Assert;
-import org.junit.Test;
-
-import javax.inject.Singleton;
 
 public class ProxyTest {
     public static interface MyConfig {

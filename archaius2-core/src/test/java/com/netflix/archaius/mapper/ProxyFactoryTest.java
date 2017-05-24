@@ -19,6 +19,10 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.nullValue;
 
+import java.util.Properties;
+
+import org.junit.Test;
+
 import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.archaius.DefaultPropertyFactory;
 import com.netflix.archaius.api.Config;
@@ -27,10 +31,6 @@ import com.netflix.archaius.api.annotations.PropertyName;
 import com.netflix.archaius.api.exceptions.ConfigException;
 import com.netflix.archaius.config.EmptyConfig;
 import com.netflix.archaius.config.MapConfig;
-
-import org.junit.Test;
-
-import java.util.Properties;
 
 public class ProxyFactoryTest {
     public static interface MyConfigWithInterpolation {

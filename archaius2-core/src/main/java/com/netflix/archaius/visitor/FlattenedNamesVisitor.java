@@ -31,4 +31,12 @@ public class FlattenedNamesVisitor implements CompositeConfig.CompositeVisitor<L
         }
         return names;
     }
+    
+    public List<String> getNames() {
+        return names;
+    }
+    
+    public String toString() {
+        return "FlattenedNamesVisitor[names=" + names + "]";
+    }
 }

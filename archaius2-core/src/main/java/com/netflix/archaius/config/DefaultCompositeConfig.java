@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.BiConsumer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,6 +46,7 @@ import com.netflix.archaius.api.exceptions.ConfigException;
  * TODO: Resolve method to collapse all the child configurations into a single config
  * TODO: Combine children and lookup into a single LinkedHashMap
  */
+@Deprecated
 public class DefaultCompositeConfig extends AbstractConfig implements com.netflix.archaius.api.config.CompositeConfig {
     private static final Logger LOG = LoggerFactory.getLogger(DefaultCompositeConfig.class);
     
@@ -309,5 +311,10 @@ public class DefaultCompositeConfig extends AbstractConfig implements com.netfli
         }
         sb.append("]");
         return sb.toString();
+    }
+
+    @Override
+    public void forEach(BiConsumer<String, Object> consumer) {
+        throw new UnsupportedOperationException();
     }
 }

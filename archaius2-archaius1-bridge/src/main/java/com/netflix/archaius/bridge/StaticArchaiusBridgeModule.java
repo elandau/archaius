@@ -26,9 +26,6 @@ import com.netflix.config.DeploymentContext;
  *     }
  * }
  * </pre>
- * 
- * @author elandau
- *
  */
 public final class StaticArchaiusBridgeModule extends AbstractModule {
     static {
@@ -45,11 +42,11 @@ public final class StaticArchaiusBridgeModule extends AbstractModule {
     
     @Override
     public boolean equals(Object obj) {
-        return StaticArchaiusBridgeModule.class.equals(obj.getClass());
+        return getClass().equals(obj.getClass());
     }
 
     @Override
     public int hashCode() {
-        return StaticArchaiusBridgeModule.class.hashCode();
+        return getClass().hashCode();
     }
 }

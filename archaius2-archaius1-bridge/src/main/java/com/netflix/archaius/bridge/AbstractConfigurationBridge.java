@@ -1,42 +1,37 @@
 package com.netflix.archaius.bridge;
 
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import javax.inject.Inject;
-import javax.inject.Singleton;
-
-import org.apache.commons.configuration.AbstractConfiguration;
-import org.apache.commons.configuration.Configuration;
-
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-import com.netflix.archaius.api.Config;
-import com.netflix.archaius.api.config.CompositeConfig;
 import com.netflix.archaius.api.config.SettableConfig;
 import com.netflix.archaius.api.exceptions.ConfigException;
-import com.netflix.archaius.api.inject.LibrariesLayer;
 import com.netflix.archaius.api.inject.RuntimeLayer;
-import com.netflix.archaius.commons.CommonsToConfig;
-import com.netflix.archaius.config.DefaultConfigListener;
+import com.netflix.archaius.commons.CommonsToPropertySource;
 import com.netflix.archaius.exceptions.ConfigAlreadyExistsException;
 import com.netflix.config.AggregatedConfiguration;
 import com.netflix.config.DeploymentContext;
 import com.netflix.config.DynamicPropertySupport;
 import com.netflix.config.PropertyListener;
+import com.netflix.config.api.Layers;
+import com.netflix.config.api.PropertySource;
+
+import org.apache.commons.configuration.AbstractConfiguration;
+import org.apache.commons.configuration.Configuration;
+
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
+
+import javax.inject.Inject;
+import javax.inject.Singleton;
 
 /**
  * @see StaticArchaiusBridgeModule
- * @author elandau
  */
 @Singleton
 class AbstractConfigurationBridge extends AbstractConfiguration implements AggregatedConfiguration, DynamicPropertySupport {
 
-    private final Config config;
+    private final com.netflix.config.api.Configuration configuration;
     private final SettableConfig settable;
-    private final CompositeConfig libraries;
     private final AtomicInteger libNameCounter = new AtomicInteger();
     
     {
@@ -45,38 +40,36 @@ class AbstractConfigurationBridge extends AbstractConfiguration implements Aggre
     
     @Inject
     public AbstractConfigurationBridge(
-            final Config config, 
-            @LibrariesLayer CompositeConfig libraries, 
+            final com.netflix.config.api.Configuration configuration,
             @RuntimeLayer SettableConfig settable, 
             DeploymentContext context) {
-        this.config = config;
+        this.configuration = configuration;
         this.settable = settable;
-        this.libraries = libraries;
     }
     
     @Override
     public boolean isEmpty() {
-        return config.isEmpty();
+        return configuration.getPropertySource().isEmpty();
     }
 
     @Override
     public boolean containsKey(String key) {
-        return config.containsKey(key);
+        return configuration.getPropertySource().getProperty(key).isPresent();
     }
     
     @Override
     public String getString(String key, String defaultValue) {
-        return config.getString(key, defaultValue);
+        return configuration.getPropertyResolver().getString(key).orElse(defaultValue);
     }
 
     @Override
     public Object getProperty(String key) {
-        return config.getRawProperty(key);  // Should interpolate
+        return configuration.getPropertySource().getProperty(key).orElse(null);  // Should interpolate
     }
 
     @Override
     public Iterator<String> getKeys() {
-        return config.getKeys();
+        return configuration.getPropertySource().getKeys().iterator();
     }
 
     @Override
@@ -92,7 +85,7 @@ class AbstractConfigurationBridge extends AbstractConfiguration implements Aggre
     @Override
     public void addConfiguration(AbstractConfiguration config, String name) {
         try {
-            libraries.addConfig(name, new CommonsToConfig(config));
+            this.configuration.addPropertySource(Layers.LIBRARIES, new CommonsToPropertySource(name, config));
         }
         catch (ConfigAlreadyExistsException e) {
             // OK To ignore
@@ -104,22 +97,22 @@ class AbstractConfigurationBridge extends AbstractConfiguration implements Aggre
 
     @Override
     public Set<String> getConfigurationNames() {
-        return Sets.newHashSet(libraries.getConfigNames());
+        return configuration.flattened().map(PropertySource::getName).collect(Collectors.toSet());
     }
 
     @Override
     public List<String> getConfigurationNameList() {
-        return Lists.newArrayList(libraries.getConfigNames());
+//        return propertySource.flattened().map(PropertySource::getName).collect(Collectors.toList());
     }
 
     @Override
     public Configuration getConfiguration(String name) {
-        return new ConfigToCommonsAdapter(libraries.getConfig(name));
+        throw new UnsupportedOperationException(name);
     }
 
     @Override
     public int getNumberOfConfigurations() {
-        return libraries.getConfigNames().size();
+        return getConfigurationNames().size();
     }
 
     @Override
@@ -134,8 +127,7 @@ class AbstractConfigurationBridge extends AbstractConfiguration implements Aggre
 
     @Override
     public Configuration removeConfiguration(String name) {
-        libraries.removeConfig(name);
-        return null;
+        throw new UnsupportedOperationException(name);
     }
 
     @Override
@@ -150,21 +142,6 @@ class AbstractConfigurationBridge extends AbstractConfiguration implements Aggre
 
     @Override
     public void addConfigurationListener(final PropertyListener expandedPropertyListener) {
-        config.addListener(new DefaultConfigListener() {
-            @Override
-            public void onConfigAdded(Config config) {
-                expandedPropertyListener.configSourceLoaded(config);
-            }
-
-            @Override
-            public void onConfigRemoved(Config config) {
-                expandedPropertyListener.configSourceLoaded(config);
-            }
-
-            @Override
-            public void onConfigUpdated(Config config) {
-                expandedPropertyListener.configSourceLoaded(config);
-            }
-        });
+        configuration.addListener(source -> expandedPropertyListener.configSourceLoaded(this));
     }
 }

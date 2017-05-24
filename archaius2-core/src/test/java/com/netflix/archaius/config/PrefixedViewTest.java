@@ -1,13 +1,13 @@
 package com.netflix.archaius.config;
 
+import org.junit.Assert;
+import org.junit.Test;
+import org.mockito.Mockito;
+
 import com.netflix.archaius.api.Config;
 import com.netflix.archaius.api.ConfigListener;
 import com.netflix.archaius.api.config.SettableConfig;
 import com.netflix.archaius.api.exceptions.ConfigException;
-
-import org.junit.Assert;
-import org.junit.Test;
-import org.mockito.Mockito;
 
 public class PrefixedViewTest {
     @Test
