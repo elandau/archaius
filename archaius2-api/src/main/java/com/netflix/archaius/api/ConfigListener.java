@@ -19,8 +19,6 @@ package com.netflix.archaius.api;
  * Listener for property updates.  Due to the cascading nature of property value resolution
  * there's not much value in specifying the value or differentiating between set, add and
  * delete.  Instead the listener is expected to fetch the property value from the config.
- * 
- * @author elandau
  */
 public interface ConfigListener {
     /**
@@ -28,14 +26,16 @@ public interface ConfigListener {
      * for CompositeConfig derived implementations.
      * @param config
      */
-    public void onConfigAdded(Config config);
+    @Deprecated
+    default void onConfigAdded(Config config) { onConfigUpdated(config); }
     
     /**
      * Notification that a configuration was removed.  This will normally only be called
      * for CompositeConfig derived implementations.
      * @param config
      */
-    public void onConfigRemoved(Config config);
+    @Deprecated
+    default void onConfigRemoved(Config config) { onConfigUpdated(config); }
     
     /**
      * Notify the listener that the entire configuration of a child has changed.  This is 
@@ -44,7 +44,7 @@ public interface ConfigListener {
      * is more efficient than trying to determine the delta.
      * @param config
      */
-    public void onConfigUpdated(Config config);
+    void onConfigUpdated(Config config);
     
     /**
      * Notify of an error in the configuration listener.  The error indicates that the
@@ -53,5 +53,6 @@ public interface ConfigListener {
      * 
      * @param error
      */
-    public void onError(Throwable error, Config config);
+    @Deprecated
+    default void onError(Throwable error, Config config) {}
 }

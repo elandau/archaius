@@ -64,23 +64,8 @@ public class DefaultPropertyFactory implements PropertyFactory, ConfigListener {
     }
     
     @Override
-    public void onConfigAdded(Config config) {
-        invalidate();
-    }
-
-    @Override
-    public void onConfigRemoved(Config config) {
-        invalidate();
-    }
-
-    @Override
     public void onConfigUpdated(Config config) {
         invalidate();
-    }
-
-    @Override
-    public void onError(Throwable error, Config config) {
-        // TODO
     }
 
     public void invalidate() {

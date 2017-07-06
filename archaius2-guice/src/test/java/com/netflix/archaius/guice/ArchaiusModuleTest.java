@@ -221,7 +221,7 @@ public class ArchaiusModuleTest {
                     @Provides
                     @Singleton
                     public TestProxyConfig getProxyConfig(ConfigProxyFactory factory) {
-                        return factory.newProxy(TestProxyConfig.class);
+                        return factory.createInstance(TestProxyConfig.class);
                     }
                 }
             );
@@ -331,7 +331,7 @@ public class ArchaiusModuleTest {
                     @Provides
                     @Singleton
                     public TestProxyConfig getProxyConfig(ConfigProxyFactory factory) {
-                        return factory.newProxy(TestProxyConfig.class);
+                        return factory.createInstance(TestProxyConfig.class);
                     }
                 }
         );

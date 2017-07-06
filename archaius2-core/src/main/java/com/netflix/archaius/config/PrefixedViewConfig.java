@@ -59,26 +59,7 @@ public class PrefixedViewConfig extends AbstractConfig {
         this.nonPrefixedLookup = ConfigStrLookup.from(config);
         this.state = new State(config, prefix);
         
-        this.config.addListener(new ConfigListener() {
-            @Override
-            public void onConfigAdded(Config config) {
-                state = new State(config, prefix);
-            }
-
-            @Override
-            public void onConfigRemoved(Config config) {
-                state = new State(config, prefix);
-            }
-
-            @Override
-            public void onConfigUpdated(Config config) {
-                state = new State(config, prefix);
-            }
-
-            @Override
-            public void onError(Throwable error, Config config) {
-            }
-        });
+        this.config.addListener(c -> { state = new State(c, prefix); } );
     }
 
     @Override

@@ -2,6 +2,7 @@ package com.netflix.archaius.test;
 
 import java.util.Iterator;
 import java.util.Properties;
+import java.util.Set;
 
 import com.netflix.archaius.api.Config;
 import com.netflix.archaius.api.config.SettableConfig;
@@ -68,5 +69,11 @@ public class TestCompositeConfig extends DefaultCompositeConfig implements Setta
     @Override
     public void clearProperty(String propName) {
         getSettableConfig(RUNTIME_LAYER_NAME).clearProperty(propName);
+    }
+
+    @Override
+    public void clearProperties(Set<String> keys) {
+        // TODO Auto-generated method stub
+        
     }
 }

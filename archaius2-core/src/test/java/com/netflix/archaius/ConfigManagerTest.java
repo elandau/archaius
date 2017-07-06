@@ -15,18 +15,49 @@
  */
 package com.netflix.archaius;
 
-import com.netflix.archaius.api.Property;
-import com.netflix.archaius.api.PropertyFactory;
-import com.netflix.archaius.config.DefaultCompositeConfig;
 import org.junit.Test;
 
-import com.netflix.archaius.config.MapConfig;
+import com.netflix.archaius.api.Config;
+import com.netflix.archaius.api.Property;
+import com.netflix.archaius.api.PropertyFactory;
 import com.netflix.archaius.api.config.CompositeConfig;
-import com.netflix.archaius.config.DefaultSettableConfig;
 import com.netflix.archaius.api.exceptions.ConfigException;
-import com.netflix.archaius.property.DefaultPropertyListener;
+import com.netflix.archaius.config.DefaultCompositeConfig;
+import com.netflix.archaius.config.DefaultSettableConfig;
+import com.netflix.archaius.config.MapConfig;
+import com.netflix.archaius.visitor.PrintStreamVisitor;
 
 public class ConfigManagerTest {
+    @Test
+    public void basicTest() {
+        ConfigManager configManager = new ConfigManager();
+        
+//            .addPropertySource(ArchaiusLayers.ENVIRONMENT,  EnvironmentConfig.INSTANCE)
+//            .addPropertySource(ArchaiusLayers.SYSTEM,       SystemConfig.INSTANCE)
+        configManager.addPropertySourceFromNamedResource(Layers.APPLICATION,       "application");
+        configManager.addPropertySourceFromNamedResource(Layers.LIBRARY,           "lib1");
+        configManager.setPropertyOverride(Layers.RUNTIME,    "foo", "value");
+        
+        Config config = configManager.getConfig();
+        config.accept(new PrintStreamVisitor());
+        config.getString("foo");
+    }
+    
+    @Test
+    public void testPutOverride() {
+        
+    }
+    
+    @Test
+    public void testClearOverride() {
+        
+    }
+    
+    @Test
+    public void loadApplication() {
+        
+    }
+    
     @Test
     public void testBasicReplacement() throws ConfigException {
         DefaultSettableConfig dyn = new DefaultSettableConfig();
@@ -40,17 +71,11 @@ public class ConfigManagerTest {
                         .put("c",      123)
                         .build()));
         
-        
         PropertyFactory factory = DefaultPropertyFactory.from(config);
         
         Property<String> prop = factory.getProperty("abc").asString("defaultValue");
         
-        prop.addListener(new DefaultPropertyListener<String>() {
-            @Override
-            public void onChange(String next) {
-                System.out.println("Configuration changed : " + next);
-            }
-        });
+        prop.addListener(next -> System.out.println("Configuration changed : " + next));
         
         dyn.setProperty("abc", "${c}");
     }

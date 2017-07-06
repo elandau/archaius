@@ -18,7 +18,6 @@ package com.netflix.archaius.commons;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.function.BiConsumer;
 
 import org.apache.commons.configuration.AbstractConfiguration;
 import org.apache.commons.lang.StringUtils;
@@ -34,6 +33,11 @@ public class CommonsToConfig extends AbstractConfig {
     private final AbstractConfiguration config;
     
     public CommonsToConfig(AbstractConfiguration config) {
+        this.config = config;
+    }
+
+    public CommonsToConfig(AbstractConfiguration config, String name) {
+        super(name);
         this.config = config;
     }
 

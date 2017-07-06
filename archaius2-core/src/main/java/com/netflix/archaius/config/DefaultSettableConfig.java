@@ -21,6 +21,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
+import java.util.Set;
 import java.util.function.BiConsumer;
 
 import com.netflix.archaius.api.Config;
@@ -28,6 +29,15 @@ import com.netflix.archaius.api.config.SettableConfig;
 
 public class DefaultSettableConfig extends AbstractConfig implements SettableConfig {
     private volatile Map<String, Object> props = Collections.emptyMap();
+    private final String name;
+    
+    public DefaultSettableConfig(String name) {
+        this.name = name;
+    }
+    
+    public DefaultSettableConfig() {
+        this("unknown");
+    }
     
     @Override
     public synchronized <T> void setProperty(String propName, T propValue) {
@@ -86,6 +96,21 @@ public class DefaultSettableConfig extends AbstractConfig implements SettableCon
     }
 
     @Override
+    public void setProperties(Map<String, Object> src) {
+        if (null != src) {
+            synchronized (this) {
+                Map<String, Object> copy = new HashMap<>(props.size() + src.size());
+                copy.putAll(props);
+                copy.putAll(src);
+                props = copy;
+                notifyConfigUpdated(this);
+            }
+        }
+    }
+
+
+    
+    @Override
     public void setProperties(Config src) {
         if (null != src) {
             synchronized (this) {
@@ -98,7 +123,26 @@ public class DefaultSettableConfig extends AbstractConfig implements SettableCon
     }
 
     @Override
+    public void clearProperties(Set<String> keys) {
+        if (null != keys && !keys.isEmpty()) {
+            synchronized (this) {
+                Map<String, Object> copy = new HashMap<>(props);
+                keys.forEach(copy::remove);
+                props = copy;
+                
+                // TODO: Should we optimize to not notify if none of the keys actually existed
+                notifyConfigUpdated(this);
+            }
+        }
+    }
+
+    @Override
     public void forEachProperty(BiConsumer<String, Object> consumer) {
         props.forEach(consumer);
+    }
+    
+    @Override
+    public String getName() {
+        return name;
     }
 }

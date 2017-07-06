@@ -15,42 +15,11 @@
  */
 package com.netflix.archaius.config;
 
-import java.util.Iterator;
-import java.util.Map;
-import java.util.function.BiConsumer;
-
-public class EnvironmentConfig extends AbstractConfig {
+public class EnvironmentConfig extends MapConfig {
 
     public static final EnvironmentConfig INSTANCE = new EnvironmentConfig();
     
-    private final Map<String, String> properties;
-    
     public EnvironmentConfig() {
-        this.properties = System.getenv();
-    }
-
-    @Override
-    public Object getRawProperty(String key) {
-        return properties.get(key);
-    }
-
-    @Override
-    public boolean containsKey(String key) {
-        return properties.containsKey(key);
-    }
-
-    @Override
-    public boolean isEmpty() {
-        return properties.isEmpty();
-    }
-    
-    @Override
-    public Iterator<String> getKeys() {
-        return properties.keySet().iterator();
-    }
-
-    @Override
-    public void forEachProperty(BiConsumer<String, Object> consumer) {
-        properties.forEach(consumer);
+        super("environment", System.getenv());
     }
 }

@@ -30,7 +30,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.netflix.archaius.api.Config;
-import com.netflix.archaius.api.ConfigListener;
 import com.netflix.archaius.api.exceptions.ConfigException;
 
 /**
@@ -120,7 +119,6 @@ public class DefaultCompositeConfig extends AbstractConfig implements com.netfli
         }
     }
     
-    private final ConfigListener listener;
     private final boolean reversed;
     private volatile State state;
     
@@ -130,31 +128,6 @@ public class DefaultCompositeConfig extends AbstractConfig implements com.netfli
     
     public DefaultCompositeConfig(boolean reversed) {
         this.reversed = reversed;
-        listener = new ConfigListener() {
-            @Override
-            public void onConfigAdded(Config config) {
-                refreshState();
-                notifyConfigAdded(DefaultCompositeConfig.this);
-            }
-
-            @Override
-            public void onConfigRemoved(Config config) {
-                refreshState();
-                notifyConfigRemoved(DefaultCompositeConfig.this);
-            }
-
-            @Override
-            public void onConfigUpdated(Config config) {
-                refreshState();
-                notifyConfigUpdated(DefaultCompositeConfig.this);
-            }
-
-            @Override
-            public void onError(Throwable error, Config config) {
-                notifyError(error, DefaultCompositeConfig.this);
-            }
-        };
-        
         this.state = new State(Collections.emptyMap(), 0);
     }
 
@@ -162,6 +135,10 @@ public class DefaultCompositeConfig extends AbstractConfig implements com.netfli
         this.state = state.refresh();
     }
 
+    protected void notifyConfigUpdated(Config child) {
+        refreshState();
+        super.notifyConfigUpdated(child);
+    }
 
     @Override
     public synchronized boolean addConfig(String name, Config child) throws ConfigException {
@@ -212,8 +189,8 @@ public class DefaultCompositeConfig extends AbstractConfig implements com.netfli
     protected void postConfigAdded(Config child) {
         child.setStrInterpolator(getStrInterpolator());
         child.setDecoder(getDecoder());
-        notifyConfigAdded(child);
-        child.addListener(listener);
+        notifyConfigUpdated(this);
+        child.addListener(this::notifyConfigUpdated);
     }
 
     @Override
@@ -231,8 +208,8 @@ public class DefaultCompositeConfig extends AbstractConfig implements com.netfli
         Config child = state.getConfig(name);
         if (child != null) {
             state = state.removeConfig(name);
-            child.removeListener(listener);
-            this.notifyConfigRemoved(child);
+            child.removeListener(this::notifyConfigUpdated);
+            notifyConfigUpdated(this);
         }
         return child;
     }    

@@ -31,11 +31,11 @@ public interface PropertyListener<T> {
      * 
      * @param value The new value for the property.
      */
-    public void onChange(T value);
+    void onChange(T value);
     
     /**
      * Notification that a property update failed
      * @param error
      */
-    public void onParseError(Throwable error);
+    default void onParseError(Throwable error) {}
 }

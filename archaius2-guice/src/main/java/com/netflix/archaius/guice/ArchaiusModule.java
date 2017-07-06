@@ -21,6 +21,7 @@ import com.google.inject.AbstractModule;
 import com.google.inject.binder.LinkedBindingBuilder;
 import com.google.inject.multibindings.Multibinder;
 import com.google.inject.name.Names;
+import com.netflix.archaius.ConfigManager;
 import com.netflix.archaius.api.CascadeStrategy;
 import com.netflix.archaius.api.Config;
 import com.netflix.archaius.api.inject.DefaultLayer;
@@ -101,6 +102,15 @@ public class ArchaiusModule extends AbstractModule {
     public ArchaiusModule withCascadeStrategy(Class<? extends CascadeStrategy> cascadeStrategy) {
         this.cascadeStrategy = cascadeStrategy;
         return this;
+    }
+    
+    public static ArchaiusModule forConfigManager(final ConfigManager manager) {
+        return new ArchaiusModule() {
+            @Override
+            protected void configureArchaius() {
+                bind(ConfigManager.class).toInstance(manager);
+            }
+        };
     }
     
     protected void configureArchaius() {

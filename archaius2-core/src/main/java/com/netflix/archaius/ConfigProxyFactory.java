@@ -1,15 +1,5 @@
 package com.netflix.archaius;
 
-import com.netflix.archaius.api.Config;
-import com.netflix.archaius.api.Decoder;
-import com.netflix.archaius.api.Property;
-import com.netflix.archaius.api.PropertyFactory;
-import com.netflix.archaius.api.annotations.Configuration;
-import com.netflix.archaius.api.annotations.DefaultValue;
-import com.netflix.archaius.api.annotations.PropertyName;
-
-import org.apache.commons.lang3.text.StrSubstitutor;
-
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationHandler;
@@ -34,6 +24,17 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 import javax.inject.Inject;
+
+import org.apache.commons.lang3.text.StrSubstitutor;
+
+import com.netflix.archaius.api.Config;
+import com.netflix.archaius.api.ConfigMapper;
+import com.netflix.archaius.api.Decoder;
+import com.netflix.archaius.api.Property;
+import com.netflix.archaius.api.PropertyFactory;
+import com.netflix.archaius.api.annotations.Configuration;
+import com.netflix.archaius.api.annotations.DefaultValue;
+import com.netflix.archaius.api.annotations.PropertyName;
 
 /**
  * Factory for binding a configuration interface to properties in a {@link PropertyFactory}
@@ -95,7 +96,7 @@ import javax.inject.Inject;
  * 
  * @see {@literal }@Configuration
  */
-public class ConfigProxyFactory {
+public class ConfigProxyFactory implements ConfigMapper {
 
     /**
      * The decoder is used for the purpose of decoding any @DefaultValue annotation
@@ -118,7 +119,6 @@ public class ConfigProxyFactory {
         this.propertyFactory = factory;
     }
     
-    @Deprecated
     public ConfigProxyFactory(Config config) {
         this.decoder = config.getDecoder();
         this.config = config;
@@ -133,8 +133,13 @@ public class ConfigProxyFactory {
      * @param config
      * @return
      */
-    public <T> T newProxy(final Class<T> type) {
+    @Override
+    public <T> T createInstance(final Class<T> type) {
         return newProxy(type, null);
+    }
+    
+    public <T> T newProxy(final Class<T> type) {
+        return createInstance(type);
     }
     
     private String derivePrefix(Configuration annot, String prefix) {

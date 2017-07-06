@@ -17,6 +17,7 @@ package com.netflix.archaius.property;
 
 import com.netflix.archaius.api.PropertyListener;
 
+@Deprecated
 public class DefaultPropertyListener<T> implements PropertyListener<T> {
     @Override
     public void onChange(T value) {

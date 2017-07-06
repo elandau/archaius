@@ -1,13 +1,13 @@
 package com.netflix.archaius.config;
 
+import org.junit.Assert;
+import org.junit.Test;
+import org.mockito.Mockito;
+
 import com.netflix.archaius.api.Config;
 import com.netflix.archaius.api.ConfigListener;
 import com.netflix.archaius.api.config.SettableConfig;
 import com.netflix.archaius.api.exceptions.ConfigException;
-
-import org.junit.Assert;
-import org.junit.Test;
-import org.mockito.Mockito;
 
 public class PrefixedViewTest {
     @Test
@@ -21,13 +21,13 @@ public class PrefixedViewTest {
         
         prefix.addListener(listener);
         
-        Mockito.verify(listener, Mockito.times(0)).onConfigAdded(Mockito.any());
+        Mockito.verify(listener, Mockito.times(0)).onConfigUpdated(Mockito.any());
         
         config.addConfig("bar", DefaultCompositeConfig.builder()
                 .withConfig("foo", MapConfig.builder().put("foo.bar", "value").build())
                 .build());
         
-        Mockito.verify(listener, Mockito.times(1)).onConfigAdded(Mockito.any());
+        Mockito.verify(listener, Mockito.times(1)).onConfigUpdated(Mockito.any());
     }
     
     @Test
@@ -45,7 +45,7 @@ public class PrefixedViewTest {
         
         // Confirm original state
         Assert.assertEquals("original", prefix.getString("bar"));
-        Mockito.verify(listener, Mockito.times(0)).onConfigAdded(Mockito.any());
+        Mockito.verify(listener, Mockito.times(0)).onConfigUpdated(Mockito.any());
 
         // Update the property and confirm onConfigUpdated notification
         settable.setProperty("foo.bar", "new");
@@ -54,7 +54,6 @@ public class PrefixedViewTest {
         
         // Add a new config and confirm onConfigAdded notification
         config.addConfig("new", MapConfig.builder().put("foo.bar", "new2").build());
-        Mockito.verify(listener, Mockito.times(1)).onConfigAdded(Mockito.any());
-        Mockito.verify(listener, Mockito.times(1)).onConfigUpdated(Mockito.any());
+        Mockito.verify(listener, Mockito.times(2)).onConfigUpdated(Mockito.any());
     }
 }

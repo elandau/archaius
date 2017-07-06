@@ -65,7 +65,7 @@ public class ProxyTest {
                 @Provides
                 @Singleton
                 public MyConfig getMyConfig(ConfigProxyFactory factory) {
-                    return factory.newProxy(MyConfig.class);
+                    return factory.createInstance(MyConfig.class);
                 }
             }
         );
@@ -149,7 +149,7 @@ public class ProxyTest {
                     @Provides
                     @Singleton
                     public DefaultMethodWithAnnotation getMyConfig(ConfigProxyFactory factory) {
-                        return factory.newProxy(DefaultMethodWithAnnotation.class);
+                        return factory.createInstance(DefaultMethodWithAnnotation.class);
                     }
                 });
             

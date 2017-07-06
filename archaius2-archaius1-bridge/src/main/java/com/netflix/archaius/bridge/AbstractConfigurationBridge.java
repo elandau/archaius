@@ -4,6 +4,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -12,16 +13,10 @@ import org.apache.commons.configuration.AbstractConfiguration;
 import org.apache.commons.configuration.Configuration;
 
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-import com.netflix.archaius.api.Config;
-import com.netflix.archaius.api.config.CompositeConfig;
-import com.netflix.archaius.api.config.SettableConfig;
-import com.netflix.archaius.api.exceptions.ConfigException;
-import com.netflix.archaius.api.inject.LibrariesLayer;
-import com.netflix.archaius.api.inject.RuntimeLayer;
+import com.netflix.archaius.ConfigManager;
+import com.netflix.archaius.Layers;
+import com.netflix.archaius.api.PropertySource;
 import com.netflix.archaius.commons.CommonsToConfig;
-import com.netflix.archaius.config.DefaultConfigListener;
-import com.netflix.archaius.exceptions.ConfigAlreadyExistsException;
 import com.netflix.config.AggregatedConfiguration;
 import com.netflix.config.DeploymentContext;
 import com.netflix.config.DynamicPropertySupport;
@@ -34,10 +29,8 @@ import com.netflix.config.PropertyListener;
 @Singleton
 class AbstractConfigurationBridge extends AbstractConfiguration implements AggregatedConfiguration, DynamicPropertySupport {
 
-    private final Config config;
-    private final SettableConfig settable;
-    private final CompositeConfig libraries;
     private final AtomicInteger libNameCounter = new AtomicInteger();
+    private final ConfigManager configManager;
     
     {
         AbstractConfiguration.setDefaultListDelimiter('\0');
@@ -45,43 +38,39 @@ class AbstractConfigurationBridge extends AbstractConfiguration implements Aggre
     
     @Inject
     public AbstractConfigurationBridge(
-            final Config config, 
-            @LibrariesLayer CompositeConfig libraries, 
-            @RuntimeLayer SettableConfig settable, 
+            final ConfigManager configManager,
             DeploymentContext context) {
-        this.config = config;
-        this.settable = settable;
-        this.libraries = libraries;
+        this.configManager = configManager;
     }
     
     @Override
     public boolean isEmpty() {
-        return config.isEmpty();
+        return configManager.getConfig().isEmpty();
     }
 
     @Override
     public boolean containsKey(String key) {
-        return config.containsKey(key);
+        return configManager.getConfig().containsKey(key);
     }
     
     @Override
     public String getString(String key, String defaultValue) {
-        return config.getString(key, defaultValue);
+        return configManager.getConfig().getString(key, defaultValue);
     }
 
     @Override
     public Object getProperty(String key) {
-        return config.getRawProperty(key);  // Should interpolate
+        return configManager.getConfig().getRawProperty(key);  // Should interpolate
     }
 
     @Override
     public Iterator<String> getKeys() {
-        return config.getKeys();
+        return configManager.getConfig().getKeys();
     }
 
     @Override
     protected void addPropertyDirect(String key, Object value) {
-        settable.setProperty(key, value);
+        configManager.setPropertyOverride(Layers.RUNTIME, key, value);
     }
 
     @Override
@@ -91,24 +80,22 @@ class AbstractConfigurationBridge extends AbstractConfiguration implements Aggre
 
     @Override
     public void addConfiguration(AbstractConfiguration config, String name) {
-        try {
-            libraries.addConfig(name, new CommonsToConfig(config));
-        }
-        catch (ConfigAlreadyExistsException e) {
-            // OK To ignore
-        } 
-        catch (ConfigException e) {
-            throw new RuntimeException("Unable to add configuration " + name, e);
-        }
+        configManager.addPropertySource(Layers.LIBRARY, new CommonsToConfig(config, name));
     }
 
     @Override
     public Set<String> getConfigurationNames() {
-        return Sets.newHashSet(libraries.getConfigNames());
+        return configManager
+                .getLayeredPropertySource()
+                .getPropertySourcesAtLayer(Layers.LIBRARY)
+                .stream()
+                .map(PropertySource::getName)
+                .collect(Collectors.toSet());
     }
 
     @Override
     public List<String> getConfigurationNameList() {
+        
         return Lists.newArrayList(libraries.getConfigNames());
     }
 
@@ -150,21 +137,6 @@ class AbstractConfigurationBridge extends AbstractConfiguration implements Aggre
 
     @Override
     public void addConfigurationListener(final PropertyListener expandedPropertyListener) {
-        config.addListener(new DefaultConfigListener() {
-            @Override
-            public void onConfigAdded(Config config) {
-                expandedPropertyListener.configSourceLoaded(config);
-            }
-
-            @Override
-            public void onConfigRemoved(Config config) {
-                expandedPropertyListener.configSourceLoaded(config);
-            }
-
-            @Override
-            public void onConfigUpdated(Config config) {
-                expandedPropertyListener.configSourceLoaded(config);
-            }
-        });
+        config.addListener(config -> expandedPropertyListener.configSourceLoaded(config));
     }
 }

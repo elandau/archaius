@@ -15,14 +15,14 @@
  */
 package com.netflix.archaius.api.config;
 
+import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 
 import com.netflix.archaius.api.Config;
 
 /**
  * SPI for a config that may be set from code.
- * 
- * @author elandau
  *
  */
 public interface SettableConfig extends Config {
@@ -52,4 +52,20 @@ public interface SettableConfig extends Config {
      * @param propName
      */
     void clearProperty(String propName);
+
+    /**
+     * Clear properties from this config
+     * @param overrides
+     */
+    void clearProperties(Set<String> keys);
+    
+    /**
+     * Set a bunch of proeprties
+     * @param overrides
+     */
+    default void setProperties(Map<String, Object> source) {
+        Properties props = new Properties();
+        props.putAll(source);
+        setProperties(props);
+    }
 }

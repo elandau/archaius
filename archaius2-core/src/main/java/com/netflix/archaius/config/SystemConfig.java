@@ -22,6 +22,10 @@ public class SystemConfig extends AbstractConfig {
 
     public static final SystemConfig INSTANCE = new SystemConfig();
 
+    public SystemConfig() {
+        super("system");
+    }
+    
     @Override
     public Object getRawProperty(String key) {
         return System.getProperty(key);

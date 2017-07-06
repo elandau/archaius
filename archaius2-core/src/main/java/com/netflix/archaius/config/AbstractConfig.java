@@ -42,11 +42,17 @@ public abstract class AbstractConfig implements Config {
     private Decoder decoder;
     private StrInterpolator interpolator;
     private String listDelimiter = ",";
+    private final String name;
     
     public AbstractConfig() {
+        this("unknown");
+    }
+    
+    public AbstractConfig(String name) {
         this.decoder = new DefaultDecoder();
         this.interpolator = CommonsStrInterpolator.INSTANCE;
         this.lookup = ConfigStrLookup.from(this);
+        this.name = name;
     }
 
     protected CopyOnWriteArrayList<ConfigListener> getListeners() {
@@ -96,27 +102,7 @@ public abstract class AbstractConfig implements Config {
     }
 
     protected void notifyConfigUpdated(Config child) {
-        for (ConfigListener listener : listeners) {
-            listener.onConfigUpdated(child);
-        }
-    }
-
-    protected void notifyError(Throwable t, Config child) {
-        for (ConfigListener listener : listeners) {
-            listener.onError(t, child);
-        }
-    }
-
-    protected void notifyConfigAdded(Config child) {
-        for (ConfigListener listener : listeners) {
-            listener.onConfigAdded(child);
-        }
-    }
-
-    protected void notifyConfigRemoved(Config child) {
-        for (ConfigListener listener : listeners) {
-            listener.onConfigRemoved(child);
-        }
+        listeners.forEach(listener -> listener.onConfigUpdated(child));
     }
 
     @Override
@@ -402,5 +388,10 @@ public abstract class AbstractConfig implements Config {
                 consumer.accept(key, value);
             }
         }
+    }
+    
+    @Override
+    public String getName() {
+        return name;
     }
 }

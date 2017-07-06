@@ -4,18 +4,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.nullValue;
 
-import com.netflix.archaius.api.Config;
-import com.netflix.archaius.api.PropertyFactory;
-import com.netflix.archaius.api.annotations.Configuration;
-import com.netflix.archaius.api.annotations.DefaultValue;
-import com.netflix.archaius.api.annotations.PropertyName;
-import com.netflix.archaius.api.config.SettableConfig;
-import com.netflix.archaius.config.DefaultSettableConfig;
-import com.netflix.archaius.config.EmptyConfig;
-
-import org.junit.Assert;
-import org.junit.Test;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -25,6 +13,18 @@ import java.util.Set;
 import java.util.SortedSet;
 
 import javax.annotation.Nullable;
+
+import org.junit.Assert;
+import org.junit.Test;
+
+import com.netflix.archaius.api.Config;
+import com.netflix.archaius.api.PropertyFactory;
+import com.netflix.archaius.api.annotations.Configuration;
+import com.netflix.archaius.api.annotations.DefaultValue;
+import com.netflix.archaius.api.annotations.PropertyName;
+import com.netflix.archaius.api.config.SettableConfig;
+import com.netflix.archaius.config.DefaultSettableConfig;
+import com.netflix.archaius.config.EmptyConfig;
 
 public class ProxyFactoryTest {
     public static enum TestEnum {
@@ -106,7 +106,7 @@ public class ProxyFactoryTest {
         
         PropertyFactory factory = DefaultPropertyFactory.from(config);
         ConfigProxyFactory proxy = new ConfigProxyFactory(config, config.getDecoder(), factory);
-        ImmutableConfig c = proxy.newProxy(ImmutableConfig.class);
+        ImmutableConfig c = proxy.createInstance(ImmutableConfig.class);
         
         assertThat(c.getValueWithDefault(), equalTo("default"));
         assertThat(c.getValueWithoutDefault2(), equalTo("default2"));
@@ -123,7 +123,7 @@ public class ProxyFactoryTest {
         PropertyFactory factory = DefaultPropertyFactory.from(config);
         ConfigProxyFactory proxy = new ConfigProxyFactory(config, config.getDecoder(), factory);
         
-        RootConfig a = proxy.newProxy(RootConfig.class);
+        RootConfig a = proxy.createInstance(RootConfig.class);
         
         assertThat(a.getStr(),                          equalTo("default"));
         assertThat(a.getInteger(),                      equalTo(0));
@@ -182,7 +182,7 @@ public class ProxyFactoryTest {
         
         PropertyFactory factory = DefaultPropertyFactory.from(config);
         ConfigProxyFactory proxy = new ConfigProxyFactory(config, config.getDecoder(), factory);
-        WithArguments withArgs = proxy.newProxy(WithArguments.class);
+        WithArguments withArgs = proxy.createInstance(WithArguments.class);
         
         Assert.assertEquals("value1",  withArgs.getProperty("a", 1));
         Assert.assertEquals("value2",  withArgs.getProperty("b", 2));
@@ -201,7 +201,7 @@ public class ProxyFactoryTest {
         
         PropertyFactory factory = DefaultPropertyFactory.from(config);
         ConfigProxyFactory proxy = new ConfigProxyFactory(config, config.getDecoder(), factory);
-        ConfigWithMap withArgs = proxy.newProxy(ConfigWithMap.class);
+        ConfigWithMap withArgs = proxy.createInstance(ConfigWithMap.class);
         
         SubConfig sub1 = withArgs.getChildren().get("1");
         SubConfig sub2 = withArgs.getChildren().get("2");
@@ -225,7 +225,7 @@ public class ProxyFactoryTest {
         
         PropertyFactory factory = DefaultPropertyFactory.from(config);
         ConfigProxyFactory proxy = new ConfigProxyFactory(config, config.getDecoder(), factory);
-        ConfigWithLongMap withArgs = proxy.newProxy(ConfigWithLongMap.class);
+        ConfigWithLongMap withArgs = proxy.createInstance(ConfigWithLongMap.class);
         
         long sub1 = withArgs.getChildren().get("1");
         long sub2 = withArgs.getChildren().get("2");
@@ -258,7 +258,7 @@ public class ProxyFactoryTest {
         
         PropertyFactory factory = DefaultPropertyFactory.from(config);
         ConfigProxyFactory proxy = new ConfigProxyFactory(config, config.getDecoder(), factory);
-        ConfigWithCollections withCollections = proxy.newProxy(ConfigWithCollections.class);
+        ConfigWithCollections withCollections = proxy.createInstance(ConfigWithCollections.class);
         
         Assert.assertEquals(Arrays.asList(5,4,3,2,1), new ArrayList<>(withCollections.getLinkedList()));
         Assert.assertEquals(Arrays.asList(5,4,3,2,1), new ArrayList<>(withCollections.getList()));
@@ -279,7 +279,7 @@ public class ProxyFactoryTest {
         
         PropertyFactory factory = DefaultPropertyFactory.from(config);
         ConfigProxyFactory proxy = new ConfigProxyFactory(config, config.getDecoder(), factory);
-        ConfigWithCollections withCollections = proxy.newProxy(ConfigWithCollections.class);
+        ConfigWithCollections withCollections = proxy.createInstance(ConfigWithCollections.class);
         
         Assert.assertEquals(Arrays.asList(4,2,1), new ArrayList<>(withCollections.getLinkedList()));
         Assert.assertEquals(Arrays.asList(4,2,1), new ArrayList<>(withCollections.getList()));
@@ -307,7 +307,7 @@ public class ProxyFactoryTest {
         
         PropertyFactory factory = DefaultPropertyFactory.from(config);
         ConfigProxyFactory proxy = new ConfigProxyFactory(config, config.getDecoder(), factory);
-        ConfigWithStringCollections withCollections = proxy.newProxy(ConfigWithStringCollections.class);
+        ConfigWithStringCollections withCollections = proxy.createInstance(ConfigWithStringCollections.class);
         
         Assert.assertEquals(Arrays.asList("", "4","", "2","1"), new ArrayList<>(withCollections.getLinkedList()));
         Assert.assertEquals(Arrays.asList("", "4","", "2","1"), new ArrayList<>(withCollections.getList()));
@@ -321,7 +321,7 @@ public class ProxyFactoryTest {
         
         PropertyFactory factory = DefaultPropertyFactory.from(config);
         ConfigProxyFactory proxy = new ConfigProxyFactory(config, config.getDecoder(), factory);
-        ConfigWithCollections withCollections = proxy.newProxy(ConfigWithCollections.class);
+        ConfigWithCollections withCollections = proxy.createInstance(ConfigWithCollections.class);
         
         Assert.assertTrue(withCollections.getLinkedList().isEmpty());
         Assert.assertTrue(withCollections.getList().isEmpty());
@@ -340,6 +340,33 @@ public class ProxyFactoryTest {
         
         PropertyFactory factory = DefaultPropertyFactory.from(config);
         ConfigProxyFactory proxy = new ConfigProxyFactory(config, config.getDecoder(), factory);
-        proxy.newProxy(ConfigWithCollectionsWithDefaultValueAnnotation.class);
+        proxy.createInstance(ConfigWithCollectionsWithDefaultValueAnnotation.class);
+    }
+    
+    public static class CustomList extends ArrayList<String> {
+        public static CustomList valueOf(String value) {
+            CustomList list = new CustomList();
+            Arrays.stream(value.split(",")).map(String::toLowerCase).forEach(list::add);
+            return list;
+        }
+    }
+    
+    public static interface ConfigWithCustomList {
+        CustomList list();
+    }
+    
+    @Test
+    public void testCustomDecoder() {
+        SettableConfig config = new DefaultSettableConfig();
+        config.setProperty("list", "a,B,C");
+        
+        PropertyFactory factory = DefaultPropertyFactory.from(config);
+        ConfigProxyFactory proxy = new ConfigProxyFactory(config, config.getDecoder(), factory);
+        ConfigWithCustomList c = proxy.createInstance(ConfigWithCustomList.class);
+        Assert.assertEquals(c.list(), Arrays.asList("a","b","c"));
+        
+        config.setProperty("list", "D");
+        Assert.assertEquals(c.list(), Arrays.asList("d"));
+        
     }
 }
