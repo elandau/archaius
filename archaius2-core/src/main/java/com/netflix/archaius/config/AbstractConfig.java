@@ -15,6 +15,17 @@
  */
 package com.netflix.archaius.config;
 
+import com.netflix.archaius.DefaultDecoder;
+import com.netflix.archaius.api.Config;
+import com.netflix.archaius.api.ConfigListener;
+import com.netflix.archaius.api.Decoder;
+import com.netflix.archaius.api.PropertySource;
+import com.netflix.archaius.api.StrInterpolator;
+import com.netflix.archaius.api.StrInterpolator.Lookup;
+import com.netflix.archaius.exceptions.ParseException;
+import com.netflix.archaius.interpolate.CommonsStrInterpolator;
+import com.netflix.archaius.interpolate.ConfigStrLookup;
+
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -24,16 +35,7 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.BiConsumer;
-
-import com.netflix.archaius.DefaultDecoder;
-import com.netflix.archaius.api.Config;
-import com.netflix.archaius.api.ConfigListener;
-import com.netflix.archaius.api.Decoder;
-import com.netflix.archaius.api.StrInterpolator;
-import com.netflix.archaius.api.StrInterpolator.Lookup;
-import com.netflix.archaius.exceptions.ParseException;
-import com.netflix.archaius.interpolate.CommonsStrInterpolator;
-import com.netflix.archaius.interpolate.ConfigStrLookup;
+import java.util.function.Consumer;
 
 public abstract class AbstractConfig implements Config {
 
@@ -394,4 +396,21 @@ public abstract class AbstractConfig implements Config {
     public String getName() {
         return name;
     }
+    
+
+    @Override
+    public void addChangeEventListener(Consumer<ChangeEvent> consumer) {
+        this.addListener(new ConfigListener() {
+            @Override
+            public void onConfigUpdated(Config config) {
+                consumer.accept(new ChangeEvent() {
+                    @Override
+                    public PropertySource getPropertySource() {
+                        return config;
+                    }
+                });
+            }
+        });
+    }
+
 }

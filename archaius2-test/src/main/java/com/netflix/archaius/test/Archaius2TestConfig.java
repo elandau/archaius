@@ -1,5 +1,17 @@
 package com.netflix.archaius.test;
 
+import com.netflix.archaius.api.Config;
+import com.netflix.archaius.api.ConfigListener;
+import com.netflix.archaius.api.Decoder;
+import com.netflix.archaius.api.StrInterpolator;
+import com.netflix.archaius.api.config.SettableConfig;
+import com.netflix.archaius.config.DefaultSettableConfig;
+
+import org.apache.commons.lang3.ClassUtils;
+import org.junit.rules.TestRule;
+import org.junit.runner.Description;
+import org.junit.runners.model.Statement;
+
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Collections;
@@ -8,18 +20,7 @@ import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 import java.util.function.BiConsumer;
-
-import org.apache.commons.lang3.ClassUtils;
-import org.junit.rules.TestRule;
-import org.junit.runner.Description;
-import org.junit.runners.model.Statement;
-
-import com.netflix.archaius.api.Config;
-import com.netflix.archaius.api.ConfigListener;
-import com.netflix.archaius.api.Decoder;
-import com.netflix.archaius.api.StrInterpolator;
-import com.netflix.archaius.api.config.SettableConfig;
-import com.netflix.archaius.config.DefaultSettableConfig;
+import java.util.function.Consumer;
 
 /***
  * JUnit rule which builds an Archaius2 {@link Config} instance using
@@ -283,5 +284,11 @@ public class Archaius2TestConfig implements TestRule, SettableConfig {
 
     @Override
     public void clearProperties(Set<String> keys) {
+        testCompositeConfig.clearProperties(keys);
+    }
+
+    @Override
+    public void addChangeEventListener(Consumer<ChangeEvent> consumer) {
+        testCompositeConfig.addChangeEventListener(consumer);
     }
 }

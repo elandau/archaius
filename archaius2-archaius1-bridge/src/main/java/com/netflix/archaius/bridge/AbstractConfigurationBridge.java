@@ -1,18 +1,5 @@
 package com.netflix.archaius.bridge;
 
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
-
-import javax.inject.Inject;
-import javax.inject.Singleton;
-
-import org.apache.commons.configuration.AbstractConfiguration;
-import org.apache.commons.configuration.Configuration;
-
-import com.google.common.collect.Lists;
 import com.netflix.archaius.ConfigManager;
 import com.netflix.archaius.Layers;
 import com.netflix.archaius.api.PropertySource;
@@ -21,6 +8,18 @@ import com.netflix.config.AggregatedConfiguration;
 import com.netflix.config.DeploymentContext;
 import com.netflix.config.DynamicPropertySupport;
 import com.netflix.config.PropertyListener;
+
+import org.apache.commons.configuration.AbstractConfiguration;
+import org.apache.commons.configuration.Configuration;
+
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
+
+import javax.inject.Inject;
+import javax.inject.Singleton;
 
 /**
  * @see StaticArchaiusBridgeModule
@@ -95,18 +94,26 @@ class AbstractConfigurationBridge extends AbstractConfiguration implements Aggre
 
     @Override
     public List<String> getConfigurationNameList() {
-        
-        return Lists.newArrayList(libraries.getConfigNames());
+        return configManager.getLayeredPropertySource()
+                .getPropertySources()
+                .stream()
+                .map(source -> source.getName())
+                .collect(Collectors.toList());
     }
 
     @Override
     public Configuration getConfiguration(String name) {
-        return new ConfigToCommonsAdapter(libraries.getConfig(name));
+        for (PropertySource source : configManager.getLayeredPropertySource().getPropertySourcesAtLayer(Layers.LIBRARY)) {
+            if (source.getName().equals(name)) {
+                return new PropertySourceToCommonsAdapter(source);
+            }
+        }
+        return null;
     }
 
     @Override
     public int getNumberOfConfigurations() {
-        return libraries.getConfigNames().size();
+        return configManager.getLayeredPropertySource().getPropertySourcesAtLayer(Layers.LIBRARY).size();
     }
 
     @Override
@@ -121,8 +128,8 @@ class AbstractConfigurationBridge extends AbstractConfiguration implements Aggre
 
     @Override
     public Configuration removeConfiguration(String name) {
-        libraries.removeConfig(name);
-        return null;
+        configManager.getLayeredPropertySource().removePropertySource(Layers.LIBRARY, name);
+        return null;    // TODO: Should we return the old source
     }
 
     @Override
@@ -137,6 +144,7 @@ class AbstractConfigurationBridge extends AbstractConfiguration implements Aggre
 
     @Override
     public void addConfigurationListener(final PropertyListener expandedPropertyListener) {
-        config.addListener(config -> expandedPropertyListener.configSourceLoaded(config));
+        configManager.getLayeredPropertySource().addChangeEventListener(
+                event -> expandedPropertyListener.configSourceLoaded(event.getPropertySource()));
     }
 }

@@ -6,7 +6,7 @@ import java.util.function.BiConsumer;
 /**
  * Contract for a raw source of properties
  */
-public interface PropertySource {
+public interface PropertySource extends ChangeEventSource {
     /**
      * Get the raw property value.  No interpolation or other modification is done to the property.
      * @param key

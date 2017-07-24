@@ -15,18 +15,19 @@
  */
 package com.netflix.archaius.config;
 
-import java.io.IOException;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
+import com.netflix.archaius.api.Config;
+import com.netflix.archaius.config.polling.ManualPollingStrategy;
+import com.netflix.archaius.junit.TestHttpServer;
+import com.netflix.archaius.property.PropertiesServerHandler;
+import com.netflix.archaius.readers.URLConfigReader;
 
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 
-import com.netflix.archaius.config.polling.ManualPollingStrategy;
-import com.netflix.archaius.junit.TestHttpServer;
-import com.netflix.archaius.property.PropertiesServerHandler;
-import com.netflix.archaius.readers.URLConfigReader;
+import java.io.IOException;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class PollingDynamicConfigTest {
     
@@ -147,7 +148,7 @@ public class PollingDynamicConfigTest {
 //        final AtomicInteger errorCount = new AtomicInteger();
         final AtomicInteger updateCount = new AtomicInteger();
         
-        config.addListener(c -> { updateCount.incrementAndGet(); });
+        config.addListener((Config c) -> { updateCount.incrementAndGet(); });
         
         // Confirm success on first pass
         prop1.setProperty("a", "A");

@@ -1,22 +1,25 @@
 package com.netflix.archaius.config;
 
+import com.netflix.archaius.api.Config;
+import com.netflix.archaius.api.Layer;
+import com.netflix.archaius.api.LayeredPropertySource;
+import com.netflix.archaius.api.PropertySource;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.netflix.archaius.api.Config;
-import com.netflix.archaius.api.Layer;
-import com.netflix.archaius.api.LayeredPropertySource;
-import com.netflix.archaius.api.PropertySource;
+import java.util.stream.Collectors;
 
 /**
  * Composite Config with child sources ordered by {@link Layer}s where there can be 
@@ -68,8 +71,8 @@ public class DefaultLayeredConfig extends AbstractConfig implements LayeredPrope
     public synchronized void addPropertySource(Layer layer, PropertySource propertySource, int position) {
         LOG.info("Adding property source {} at layer {}", propertySource.getName(), layer);
         
-        List<PropertySourceHolder> newEntries = new ArrayList<>(state.children);
-        newEntries.add(new PropertySourceHolder(layer, position, propertySource));
+        List<LayerAndPropertySource> newEntries = new ArrayList<>(state.children);
+        newEntries.add(new LayerAndPropertySource(layer, propertySource, position));
         newEntries.sort(ByPriorityAndInsertionOrder);
         state = new ImmutableCompositeState(newEntries);
         
@@ -83,6 +86,36 @@ public class DefaultLayeredConfig extends AbstractConfig implements LayeredPrope
     }
 
     @Override
+    public Collection<PropertySource> getPropertySourcesAtLayer(Layer layer) {
+        return state.children.stream()
+                .filter(holder -> holder.layer.equals(layer))
+                .map(holder -> holder.propertySource)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public Collection<PropertySource> getPropertySources() {
+        return this.state.children.stream().map(LayerAndPropertySource::getPropertySource).collect(Collectors.toList());
+    }
+
+    @Override
+    public synchronized Optional<PropertySource> removePropertySource(Layer layer, String name) {
+        LOG.info("Removing property source {} at layer {}", name, layer);
+        List<LayerAndPropertySource> newEntries = new ArrayList<>(state.children);
+        Optional<PropertySource> previous = newEntries
+                .stream()
+                .filter(source -> source.layer.equals(layer) && source.propertySource.getName().equals(name))
+                .map(LayerAndPropertySource::getPropertySource)
+                .findFirst();
+                
+        newEntries.sort(ByPriorityAndInsertionOrder);
+        state = new ImmutableCompositeState(newEntries);
+        this.notifyConfigUpdated(this);
+        
+        return previous;
+    }
+
+    @Override
     public void forEachProperty(BiConsumer<String, Object> consumer) {
         this.state.properties.forEach(consumer);
     }
@@ -92,14 +125,14 @@ public class DefaultLayeredConfig extends AbstractConfig implements LayeredPrope
     /**
      * Instance of a single child PropertySource within the composite structure
      */
-    private static class PropertySourceHolder {
-        private final Layer key;
-        private final int insertionOrder;
+    private static class LayerAndPropertySource {
+        private final Layer layer;
+        private final int internalOrder;
         private final PropertySource propertySource;
         
-        private PropertySourceHolder(Layer key, int internalOrder, PropertySource propertySource) {
-            this.key = key;
-            this.insertionOrder = internalOrder;
+        private LayerAndPropertySource(Layer layer, PropertySource propertySource, int internalOrder) {
+            this.layer = layer;
+            this.internalOrder = internalOrder;
             this.propertySource = propertySource;
         }
         
@@ -108,10 +141,18 @@ public class DefaultLayeredConfig extends AbstractConfig implements LayeredPrope
             final int prime = 31;
             int result = 1;
             result = 31 + ((propertySource == null) ? 0 : propertySource.hashCode());
-            result = prime * result + ((key == null) ? 0 : key.hashCode());
+            result = prime * result + ((layer == null) ? 0 : layer.hashCode());
             return result;
         }
 
+        public Layer getLayer() {
+            return layer;
+        }
+        
+        public PropertySource getPropertySource() {
+            return propertySource;
+        }
+        
         @Override
         public boolean equals(Object obj) {
             if (this == obj)
@@ -120,37 +161,37 @@ public class DefaultLayeredConfig extends AbstractConfig implements LayeredPrope
                 return false;
             if (getClass() != obj.getClass())
                 return false;
-            PropertySourceHolder other = (PropertySourceHolder) obj;
+            LayerAndPropertySource other = (LayerAndPropertySource) obj;
             if (propertySource == null) {
                 if (other.propertySource != null)
                     return false;
             } else if (!propertySource.equals(other.propertySource))
                 return false;
-            if (key == null) {
-                if (other.key != null)
+            if (layer == null) {
+                if (other.layer != null)
                     return false;
-            } else if (!key.equals(other.key))
+            } else if (!layer.equals(other.layer))
                 return false;
             return true;
         }
 
         @Override
         public String toString() {
-            return "Element [key=" + key + ", id=" + insertionOrder + ", value=" + propertySource + "]";
+            return "Element [layer=" + layer + ", id=" + internalOrder + ", value=" + propertySource + "]";
         }
     }
     
-    private static final Comparator<PropertySourceHolder> ByPriorityAndInsertionOrder = (PropertySourceHolder o1, PropertySourceHolder o2) -> {
-        if (o1.key != o2.key) {
-            int result = o1.key.getOrder() - o2.key.getOrder();
+    private static final Comparator<LayerAndPropertySource> ByPriorityAndInsertionOrder = (LayerAndPropertySource o1, LayerAndPropertySource o2) -> {
+        if (o1.layer != o2.layer) {
+            int result = o1.layer.getOrder() - o2.layer.getOrder();
             if (result != 0) {
                 return result;
             }
         }
         
-        return o1.key.isReversedOrder()
-                ? o1.insertionOrder - o2.insertionOrder
-                : o2.insertionOrder - o1.insertionOrder;                        
+        return o1.layer.isReversedOrder()
+                ? o1.internalOrder - o2.internalOrder
+                : o2.internalOrder - o1.internalOrder;                        
     };
 
     /**
@@ -158,10 +199,10 @@ public class DefaultLayeredConfig extends AbstractConfig implements LayeredPrope
      * will be created whenever a new Config is added or removed
      */
     private class ImmutableCompositeState {
-        private final List<PropertySourceHolder> children;
+        private final List<LayerAndPropertySource> children;
         private final Map<String, Object> properties;
         
-        ImmutableCompositeState(List<PropertySourceHolder> entries) {
+        ImmutableCompositeState(List<LayerAndPropertySource> entries) {
             this.children = Collections.unmodifiableList(entries);
             this.properties = new HashMap<>();
             this.children.forEach(child -> child.propertySource.forEachProperty(properties::putIfAbsent));
