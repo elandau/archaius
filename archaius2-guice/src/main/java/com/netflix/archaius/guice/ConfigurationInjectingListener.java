@@ -1,37 +1,34 @@
 package com.netflix.archaius.guice;
 
-import javax.inject.Inject;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.inject.Injector;
-import com.google.inject.Key;
 import com.google.inject.ProvisionException;
-import com.google.inject.name.Names;
 import com.google.inject.spi.ProvisionListener;
-import com.netflix.archaius.ConfigManager;
 import com.netflix.archaius.ConfigMapper;
+import com.netflix.archaius.LayeredPropertySourceManager;
 import com.netflix.archaius.Layers;
 import com.netflix.archaius.api.CascadeStrategy;
-import com.netflix.archaius.api.Config;
-import com.netflix.archaius.api.IoCContainer;
+import com.netflix.archaius.api.PropertyResolver;
 import com.netflix.archaius.api.annotations.Configuration;
 import com.netflix.archaius.api.annotations.ConfigurationSource;
 import com.netflix.archaius.api.exceptions.ConfigException;
 import com.netflix.archaius.cascade.NoCascadeStrategy;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.inject.Inject;
+
 public class ConfigurationInjectingListener implements ProvisionListener {
     private static final Logger LOG = LoggerFactory.getLogger(ConfigurationInjectingListener.class);
     
     @Inject
-    private Config            config;
+    private PropertyResolver  resolver;
     
     @Inject
     private Injector          injector;
     
     @Inject
-    private ConfigManager     configManager;
+    private LayeredPropertySourceManager     configManager;
     
     @com.google.inject.Inject(optional = true)
     private CascadeStrategy   cascadeStrategy;
@@ -89,12 +86,7 @@ public class ConfigurationInjectingListener implements ProvisionListener {
             }
             
             try {
-                mapper.mapConfig(provision.provision(), config, new IoCContainer() {
-                    @Override
-                    public <T> T getInstance(String name, Class<T> type) {
-                        return injector.getInstance(Key.get(type, Names.named(name)));
-                    }
-                });
+                mapper.mapConfig(provision.provision(), resolver, configManager::resolve);
             }
             catch (Exception e) {
                 throw new ProvisionException("Unable to bind configuration to " + clazz, e);

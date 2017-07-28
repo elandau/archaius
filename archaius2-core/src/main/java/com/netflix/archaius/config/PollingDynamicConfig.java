@@ -18,6 +18,7 @@ package com.netflix.archaius.config;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -117,11 +118,22 @@ public class PollingDynamicConfig extends AbstractConfig {
     
     @Override
     public Iterator<String> getKeys() {
-        return current.keySet().iterator();
+        return getPropertyNames().iterator();
     }
 
     @Override
     public void forEachProperty(BiConsumer<String, Object> consumer) {
         current.forEach(consumer);
     }
+
+    @Override
+    public Iterable<String> getPropertyNames() { 
+        return current.keySet();
+    }
+
+    @Override
+    public Optional<Object> getProperty(String key) {
+        return Optional.ofNullable(current.get(key));
+    }
+
 }

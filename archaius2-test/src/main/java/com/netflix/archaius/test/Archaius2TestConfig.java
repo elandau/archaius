@@ -291,4 +291,9 @@ public class Archaius2TestConfig implements TestRule, SettableConfig {
     public void addChangeEventListener(Consumer<ChangeEvent> consumer) {
         testCompositeConfig.addChangeEventListener(consumer);
     }
+
+    @Override
+    public Iterable<String> getPropertyNames() {
+        return testCompositeConfig.getPropertyNames();
+    }
 }

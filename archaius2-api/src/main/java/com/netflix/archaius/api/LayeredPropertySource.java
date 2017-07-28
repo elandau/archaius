@@ -4,7 +4,6 @@ import com.netflix.archaius.api.Config.Visitor;
 import com.netflix.archaius.api.exceptions.ConfigException;
 
 import java.util.Collection;
-import java.util.Optional;
 
 /**
  * Composite PropertySource where the override order is driven by Layer keys.
@@ -34,13 +33,15 @@ public interface LayeredPropertySource extends PropertySource, CompositeProperty
      */
     void addPropertySource(Layer layer, PropertySource propertySource);
     
+    void addPropertySource(Layer layer, PropertySource propertySource, int position);
+
     /**
      * Remove a named PropertySource from a layer
      * @param layer
      * @param name
      * @return
      */
-    Optional<PropertySource> removePropertySource(Layer layer, String name);
+    void removePropertySource(Layer layer, String name);
     
     /**
      * Return all property sources at a layer

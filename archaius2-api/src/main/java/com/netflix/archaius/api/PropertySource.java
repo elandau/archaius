@@ -11,13 +11,13 @@ public interface PropertySource extends ChangeEventSource {
      * Get the raw property value.  No interpolation or other modification is done to the property.
      * @param key
      */
-    default Optional<Object> getProperty(String key) { return Optional.empty(); }
+    Optional<Object> getProperty(String key);
 
     /**
      * Mechanism for consuming all properties of the PropertySource
      * @param consumer
      */
-    default void forEachProperty(BiConsumer<String, Object> consumer) {}
+    void forEachProperty(BiConsumer<String, Object> consumer);
 
     /**
      * @return Name used to identify the source such as a filename.
@@ -28,4 +28,9 @@ public interface PropertySource extends ChangeEventSource {
      * @return True if empty or false otherwise.
      */
     boolean isEmpty();
+
+    /**
+     * @return Keys for all properties in the PropertySource
+     */
+    Iterable<String> getPropertyNames();
 }

@@ -19,6 +19,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.function.BiConsumer;
@@ -107,6 +108,11 @@ public class MapConfig extends AbstractConfig {
     }
 
     @Override
+    public Optional<Object> getProperty(String key) {
+        return Optional.ofNullable(props.get(key));
+    }
+
+    @Override
     public boolean containsKey(String key) {
         return props.containsKey(key);
     }
@@ -118,7 +124,12 @@ public class MapConfig extends AbstractConfig {
 
     @Override
     public Iterator<String> getKeys() {
-        return props.keySet().iterator();
+        return getPropertyNames().iterator();
+    }
+
+    @Override
+    public Iterable<String> getPropertyNames() { 
+        return props.keySet();
     }
 
     @Override

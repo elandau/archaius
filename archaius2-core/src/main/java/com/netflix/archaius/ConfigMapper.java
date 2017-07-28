@@ -15,41 +15,21 @@
  */
 package com.netflix.archaius;
 
+import com.netflix.archaius.api.PropertyResolver;
+import com.netflix.archaius.api.annotations.Configuration;
+import com.netflix.archaius.exceptions.MappingException;
+
+import org.apache.commons.lang3.text.StrSubstitutor;
+
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.HashMap;
 import java.util.Map;
-
-import org.apache.commons.lang3.text.StrSubstitutor;
-
-import com.netflix.archaius.api.Config;
-import com.netflix.archaius.api.IoCContainer;
-import com.netflix.archaius.api.annotations.Configuration;
-import com.netflix.archaius.exceptions.MappingException;
-import com.netflix.archaius.interpolate.ConfigStrLookup;
+import java.util.Optional;
+import java.util.function.Function;
 
 public class ConfigMapper {
-    private static final IoCContainer NULL_IOC_CONTAINER = new IoCContainer() {
-        @Override
-        public <T> T getInstance(String name, Class<T> type) {
-            return null;
-        }
-    };
-    
-    /**
-     * Map the configuration from the provided config object onto the injectee and use
-     * the provided IoCContainer to inject named bindings.
-     * 
-     * @param injectee
-     * @param config
-     * @param ioc
-     * @throws MappingException
-     */
-    public <T> void mapConfig(T injectee, Config config) throws MappingException {
-        mapConfig(injectee, config, NULL_IOC_CONTAINER);
-    }
-
     /**
      * Map the configuration from the provided config object onto the injectee.
      * 
@@ -58,7 +38,7 @@ public class ConfigMapper {
      * @param ioc
      * @throws MappingException
      */
-    public <T> void mapConfig(T injectee, final Config config, IoCContainer ioc) throws MappingException {
+    public <T> void mapConfig(T injectee, final PropertyResolver resolver, final Function<String, String> interpolator) throws MappingException {
         Configuration configAnnot = injectee.getClass().getAnnotation(Configuration.class);
         if (configAnnot == null) {
             return;
@@ -96,7 +76,7 @@ public class ConfigMapper {
         }
         
         // Interpolate using any replacements loaded into the configuration
-        prefix = config.getStrInterpolator().create(ConfigStrLookup.from(config)).resolve(prefix);
+        prefix = interpolator.apply(prefix);
         if (!prefix.isEmpty() && !prefix.endsWith("."))
             prefix += ".";
         
@@ -111,24 +91,13 @@ public class ConfigMapper {
                 
                 String name = field.getName();
                 Class<?> type = field.getType();
-                Object value = null;
-                if (type.isInterface()) {
-                    // TODO: Do Class.newInstance() if objName is a classname
-                    String objName = config.getString(prefix + name, null);
-                    if (objName != null) {
-                        value = ioc.getInstance(objName, type);
-                    }
-                }
-                else {
-                    value = config.get(type, prefix + name, null);
-                }
-                
-                if (value != null) {
+                Optional<?> value = resolver.getProperty(prefix + name, type);
+                if (value.isPresent()) {
                     try {
                         field.setAccessible(true);
-                        field.set(injectee, value);
+                        field.set(injectee, value.get());
                     } catch (Exception e) {
-                        throw new MappingException("Unable to inject field " + injectee.getClass() + "." + name + " with value " + value, e);
+                        throw new RuntimeException("Unable to inject field " + injectee.getClass() + "." + name + " with value " + value, e);
                     }
                 }
             }
@@ -160,20 +129,10 @@ public class ConfigMapper {
     
                 method.setAccessible(true);
                 Class<?> type = method.getParameterTypes()[0];
-                Object value = null;
-                if (type.isInterface()) {
-                    String objName = config.getString(prefix + name, null);
-                    if (objName != null) {
-                        value = ioc.getInstance(objName, type);
-                    }
-                }
-                else {
-                    value = config.get(type, prefix + name, null);
-                }
-                
-                if (value != null) {
+                Optional<?> value = resolver.getProperty(prefix + name, type);
+                if (value.isPresent()) {
                     try {
-                        method.invoke(injectee, value);
+                        method.invoke(injectee, value.get());
                     } catch (Exception e) {
                         throw new MappingException("Unable to inject field " + injectee.getClass() + "." + name + " with value " + value, e);
                     }

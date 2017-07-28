@@ -36,6 +36,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
@@ -62,7 +63,7 @@ public class DefaultConfigLoader implements ConfigLoader {
                                                     
     public static class Builder {
         private Set<ConfigReader>  loaders         = new HashSet<ConfigReader>();
-        private CascadeStrategy defaultStrategy = DEFAULT_CASCADE_STRATEGY;
+        private CascadeStrategy     defaultStrategy = DEFAULT_CASCADE_STRATEGY;
         private StrInterpolator     interpolator    = DEFAULT_INTERPOLATOR;
         private Lookup              lookup          = DEFAULT_LOOKUP;
         
@@ -72,6 +73,12 @@ public class DefaultConfigLoader implements ConfigLoader {
         }
 
         public Builder withConfigReaders(Set<ConfigReader> loaders) {
+            if (loaders != null)
+                this.loaders.addAll(loaders);
+            return this;
+        }
+
+        public Builder withConfigReaders(Collection<ConfigReader> loaders) {
             if (loaders != null)
                 this.loaders.addAll(loaders);
             return this;
@@ -167,7 +174,7 @@ public class DefaultConfigLoader implements ConfigLoader {
 
             @Override
             public CompositeConfig load(String resourceName) throws ConfigException {
-                CompositeConfig compositeConfig = new DefaultCompositeConfig(true);
+                CompositeConfig compositeConfig = new DefaultCompositeConfig(resourceName, true);
 
                 List<String> names = strategy.generate(resourceName, interpolator, lookup);
                 for (String name : names) {

@@ -15,18 +15,18 @@
  */
 package com.netflix.archaius.guice;
 
-import java.util.Properties;
-
 import com.google.inject.AbstractModule;
 import com.google.inject.binder.LinkedBindingBuilder;
 import com.google.inject.multibindings.Multibinder;
 import com.google.inject.name.Names;
-import com.netflix.archaius.ConfigManager;
+import com.netflix.archaius.LayeredPropertySourceManager;
 import com.netflix.archaius.api.CascadeStrategy;
 import com.netflix.archaius.api.Config;
 import com.netflix.archaius.api.inject.DefaultLayer;
 import com.netflix.archaius.api.inject.RemoteLayer;
 import com.netflix.archaius.config.MapConfig;
+
+import java.util.Properties;
 
 /**
  * Guice Module for enabling archaius and making its components injectable.  Installing this
@@ -104,11 +104,11 @@ public class ArchaiusModule extends AbstractModule {
         return this;
     }
     
-    public static ArchaiusModule forConfigManager(final ConfigManager manager) {
+    public static ArchaiusModule from(final LayeredPropertySourceManager manager) {
         return new ArchaiusModule() {
             @Override
             protected void configureArchaius() {
-                bind(ConfigManager.class).toInstance(manager);
+                bind(LayeredPropertySourceManager.class).annotatedWith(Raw.class).toInstance(manager);
             }
         };
     }

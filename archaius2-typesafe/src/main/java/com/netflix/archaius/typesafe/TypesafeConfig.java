@@ -21,9 +21,11 @@ import com.typesafe.config.ConfigException;
 import com.typesafe.config.ConfigUtil;
 import com.typesafe.config.ConfigValue;
 
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.stream.Collectors;
 
 public class TypesafeConfig extends AbstractConfig {
 
@@ -92,5 +94,10 @@ public class TypesafeConfig extends AbstractConfig {
                 iter.remove();
             }
         };
+    }
+
+    @Override
+    public Iterable<String> getPropertyNames() {
+        return Collections.unmodifiableList(config.entrySet().stream().map(entry -> entry.getKey()).collect(Collectors.toList()));
     }
 }

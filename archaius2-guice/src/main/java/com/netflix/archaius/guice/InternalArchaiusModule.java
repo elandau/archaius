@@ -1,36 +1,37 @@
 package com.netflix.archaius.guice;
 
-import java.util.Optional;
-import java.util.Set;
-
-import javax.inject.Named;
-import javax.inject.Provider;
-
 import com.google.inject.AbstractModule;
 import com.google.inject.Inject;
+import com.google.inject.Injector;
+import com.google.inject.Key;
 import com.google.inject.Provides;
 import com.google.inject.Scopes;
 import com.google.inject.Singleton;
 import com.google.inject.matcher.Matchers;
 import com.google.inject.multibindings.Multibinder;
 import com.google.inject.multibindings.OptionalBinder;
-import com.netflix.archaius.ConfigManager;
+import com.google.inject.name.Names;
 import com.netflix.archaius.ConfigProxyFactory;
-import com.netflix.archaius.DefaultDecoder;
 import com.netflix.archaius.DefaultPropertyFactory;
+import com.netflix.archaius.LayeredPropertySourceManager;
 import com.netflix.archaius.Layers;
+import com.netflix.archaius.ResolvingPropertySource;
+import com.netflix.archaius.StringConverterRegistryBuilder;
 import com.netflix.archaius.api.Config;
 import com.netflix.archaius.api.ConfigReader;
-import com.netflix.archaius.api.Decoder;
 import com.netflix.archaius.api.PropertyFactory;
+import com.netflix.archaius.api.PropertyResolver;
 import com.netflix.archaius.api.config.SettableConfig;
 import com.netflix.archaius.api.inject.DefaultLayer;
 import com.netflix.archaius.api.inject.RemoteLayer;
 import com.netflix.archaius.api.inject.RuntimeLayer;
-import com.netflix.archaius.config.DefaultSettableConfig;
-import com.netflix.archaius.config.EnvironmentConfig;
-import com.netflix.archaius.config.SystemConfig;
+import com.netflix.archaius.config.PropertySourceToConfig;
 import com.netflix.archaius.readers.PropertiesConfigReader;
+
+import java.util.Set;
+
+import javax.inject.Named;
+import javax.inject.Provider;
 
 final class InternalArchaiusModule extends AbstractModule {
     static final String CONFIG_NAME_KEY         = "archaius.config.name";
@@ -48,25 +49,14 @@ final class InternalArchaiusModule extends AbstractModule {
         Multibinder.newSetBinder(binder(), ConfigReader.class)
             .addBinding().to(PropertiesConfigReader.class).in(Scopes.SINGLETON);
         
-        OptionalBinder.newOptionalBinder(binder(), ConfigManager.class);
+        OptionalBinder.newOptionalBinder(binder(), ResolvingPropertySource.class);
     }
 
-    @Provides
-    @Singleton
-    @RuntimeLayer
-    SettableConfig getSettableConfig() {
-        return new DefaultSettableConfig();
-    }
-    
     @Singleton
     private static class ConfigParameters {
         @Inject(optional=true)
         @Named(CONFIG_NAME_KEY)
         String configName;
-        
-        @Inject
-        @RuntimeLayer
-        SettableConfig  runtimeLayer;
         
         @Inject(optional=true)
         @RemoteLayer 
@@ -104,71 +94,21 @@ final class InternalArchaiusModule extends AbstractModule {
             return configName == null ? DEFAULT_CONFIG_NAME : configName;
         }
     }
-
-    @Provides
-    @Singleton
-    @Raw
-    ConfigManager getConfigManager(@Raw Optional<ConfigManager> externalConfigManager) {
-        return externalConfigManager.orElseGet(() -> {
-            ConfigManager configManager = new ConfigManager();
-            configManager.addPropertySource(Layers.SYSTEM, SystemConfig.INSTANCE);
-            configManager.addPropertySource(Layers.ENVIRONMENT, EnvironmentConfig.INSTANCE);
-            return configManager;
-        });
-    }
     
     @Provides
     @Singleton
-    @Raw
-    Config getRawConfig(ConfigManager configManager) throws Exception {
-        return configManager.getConfig();
-    }
-
-    @Provides
-    @Singleton
     @RuntimeLayer
-    SettableConfig getRuntimeLayer(ConfigManager configManager) {
+    SettableConfig getRuntimeLayer(LayeredPropertySourceManager configManager) {
         // TODO:
         return null;
     }
     
     @Provides
     @Singleton
-    Config getConfig(ConfigParameters params, ConfigManager configManager, @Raw Optional<ConfigManager> externalConfigManager) throws Exception {
-        if (externalConfigManager.isPresent()) {
-            
-        } else {
-            // Load defaults layer
-            if (params.hasDefaultConfigs()) {
-                params.defaultConfigs.forEach(c -> configManager.addPropertySource(Layers.DEFAULT,  c));
-            }
-    
-            if (params.hasOverrideResources()) {
-                params.overrideResources.forEach(name -> 
-                    configManager.addPropertySourceFromNamedResource(Layers.APPLICATION_OVERRIDE, name));
-            }
-    
-            if (params.hasApplicationOverride()) {
-                configManager.addPropertySource(Layers.APPLICATION_OVERRIDE, params.applicationOverride);
-            }
-            
-            configManager.addPropertySourceFromNamedResource(Layers.APPLICATION, params.getConfigName());
-    
-            // Load remote properties
-            if (params.hasRemoteLayer()) {
-                configManager.addPropertySource(Layers.REMOTE, params.remoteLayerProvider.get());
-            }
-        }
-        
-        return configManager.getConfig();
+    Config getConfig(LayeredPropertySourceManager manager) throws Exception {
+        return new PropertySourceToConfig(manager.getResolvingPropertySource());
     }
     
-    @Provides
-    @Singleton
-    Decoder getDecoder() {
-        return DefaultDecoder.INSTANCE;
-    }
-
     @Provides
     @Singleton
     PropertyFactory getPropertyFactory(Config config) {
@@ -177,8 +117,52 @@ final class InternalArchaiusModule extends AbstractModule {
 
     @Provides
     @Singleton
-    ConfigProxyFactory getProxyFactory(Config config, Decoder decoder, PropertyFactory factory) {
-        return new ConfigProxyFactory(config, decoder, factory);
+    LayeredPropertySourceManager getPropertySourceManager(Injector injector, ConfigParameters params) {
+        LayeredPropertySourceManager configManager = LayeredPropertySourceManager
+                .newBuilder()
+                .withStringConverterRegistry(new StringConverterRegistryBuilder()
+                    .withNotFoundConverter(type -> {
+                        System.out.println("Creating converter for type : " + type);
+                        return value -> injector.getInstance(Key.get(type, Names.named(value)));
+                    })
+                    .build()
+                )
+                .build();
+        
+        // Load defaults layer
+        if (params.hasDefaultConfigs()) {
+            params.defaultConfigs.forEach(c -> configManager.getLayeredPropertySource().addPropertySource(Layers.DEFAULT,  c));
+        }
+
+        if (params.hasOverrideResources()) {
+            params.overrideResources.forEach(name -> 
+                configManager.addPropertySourceFromNamedResource(Layers.APPLICATION_OVERRIDE, name));
+        }
+
+        if (params.hasApplicationOverride()) {
+            configManager.getLayeredPropertySource().addPropertySource(Layers.APPLICATION_OVERRIDE, params.applicationOverride);
+        }
+        
+        configManager.addPropertySourceFromNamedResource(Layers.APPLICATION, params.getConfigName());
+
+        // Load remote properties
+        if (params.hasRemoteLayer()) {
+            configManager.getLayeredPropertySource().addPropertySource(Layers.REMOTE, params.remoteLayerProvider.get());
+        }
+
+        return configManager;
+    }
+    
+    @Provides
+    @Singleton
+    ConfigProxyFactory getProxyFactory(LayeredPropertySourceManager manager) {
+        return new ConfigProxyFactory(manager.getResolvingPropertySource());
+    }
+    
+    @Provides
+    @Singleton
+    PropertyResolver getPropertyResolver(LayeredPropertySourceManager manager) {
+        return manager.getResolvingPropertySource();
     }
     
     @Override

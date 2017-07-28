@@ -19,7 +19,9 @@ package com.netflix.archaius.api;
  * Listener for property updates.  Due to the cascading nature of property value resolution
  * there's not much value in specifying the value or differentiating between set, add and
  * delete.  Instead the listener is expected to fetch the property value from the config.
+ * @deprecated See {@link ChangeEventSource#addChangeEventListener(java.util.function.Consumer)}
  */
+@Deprecated
 public interface ConfigListener {
     /**
      * Notification that a configuration was added.  This will normally only be called

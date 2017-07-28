@@ -15,8 +15,11 @@
  */
 package com.netflix.archaius.config;
 
+import java.util.Collections;
 import java.util.Iterator;
+import java.util.Optional;
 import java.util.function.BiConsumer;
+import java.util.stream.Collectors;
 
 public class SystemConfig extends AbstractConfig {
 
@@ -32,6 +35,11 @@ public class SystemConfig extends AbstractConfig {
     }
 
     @Override
+    public Optional<Object> getProperty(String key) {
+        return Optional.ofNullable(System.getProperty(key));
+    }
+
+    @Override
     public boolean containsKey(String key) {
         return System.getProperty(key) != null;
     }
@@ -43,28 +51,16 @@ public class SystemConfig extends AbstractConfig {
 
     @Override
     public Iterator<String> getKeys() {
-        return new Iterator<String>() {
-            Iterator<Object> obj = System.getProperties().keySet().iterator();
-            
-            @Override
-            public boolean hasNext() {
-                return obj.hasNext();
-            }
-
-            @Override
-            public String next() {
-                return obj.next().toString();
-            }
-
-            @Override
-            public void remove() {
-                throw new UnsupportedOperationException();
-            }
-        };
+        return getPropertyNames().iterator();
     }
 
     @Override
     public void forEachProperty(BiConsumer<String, Object> consumer) {
         System.getProperties().forEach((k, v) -> consumer.accept(k.toString(), v));
+    }
+
+    @Override
+    public Iterable<String> getPropertyNames() { 
+        return Collections.unmodifiableList(System.getProperties().keySet().stream().map(Object::toString).collect(Collectors.toList()));
     }
 }

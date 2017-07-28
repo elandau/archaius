@@ -15,6 +15,12 @@
  */
 package com.netflix.archaius.config;
 
+import com.netflix.archaius.api.Config;
+import com.netflix.archaius.api.exceptions.ConfigException;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -22,15 +28,10 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.netflix.archaius.api.Config;
-import com.netflix.archaius.api.exceptions.ConfigException;
 
 /**
  * Config that is a composite of multiple configuration and as such doesn't track 
@@ -127,6 +128,11 @@ public class DefaultCompositeConfig extends AbstractConfig implements com.netfli
     }
     
     public DefaultCompositeConfig(boolean reversed) {
+        this("unknown", reversed);
+    }
+
+    public DefaultCompositeConfig(String name, boolean reversed) {
+        super(name);
         this.reversed = reversed;
         this.state = new State(Collections.emptyMap(), 0);
     }
@@ -187,8 +193,6 @@ public class DefaultCompositeConfig extends AbstractConfig implements com.netfli
     }
     
     protected void postConfigAdded(Config child) {
-        child.setStrInterpolator(getStrInterpolator());
-        child.setDecoder(getDecoder());
         notifyConfigUpdated(this);
         child.addListener(this::notifyConfigUpdated);
     }
@@ -253,12 +257,15 @@ public class DefaultCompositeConfig extends AbstractConfig implements com.netfli
 
     public static com.netflix.archaius.api.config.CompositeConfig from(LinkedHashMap<String, Config> load) throws ConfigException {
         Builder builder = builder();
-        for (Entry<String, Config> config : load.entrySet()) {
-            builder.withConfig(config.getKey(), config.getValue());
-        }
+        load.entrySet().forEach(config -> builder.withConfig(config.getKey(), config.getValue()));
         return builder.build();
     }
     
+    @Override
+    public Iterable<String> getPropertyNames() { 
+        return state.data.keySet();
+    }
+
     @Override
     public boolean containsKey(String key) {
         return state.data.containsKey(key);
@@ -277,5 +284,10 @@ public class DefaultCompositeConfig extends AbstractConfig implements com.netfli
     @Override
     public String toString() {
         return "[" + state.children.keySet().stream().collect(Collectors.joining(" ")) + "]";
+    }
+
+    @Override
+    public Optional<Object> getProperty(String key) {
+        return Optional.ofNullable(state.data.get(key));
     }
 }

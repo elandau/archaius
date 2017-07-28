@@ -3,7 +3,7 @@ package com.netflix.archaius.api;
 import java.util.Collection;
 
 /**
- * Simple for a PropertySource that is composed of multiple PropertySources.
+ * Simple contract for a PropertySource that is composed of multiple PropertySources.
  */
 public interface CompositePropertySource extends ChangeEventSource {
     /**

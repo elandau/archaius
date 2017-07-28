@@ -15,14 +15,15 @@
  */
 package com.netflix.archaius.commons;
 
+import com.netflix.archaius.config.AbstractConfig;
+
+import org.apache.commons.configuration.AbstractConfiguration;
+
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-
-import org.apache.commons.configuration.AbstractConfiguration;
-import org.apache.commons.lang.StringUtils;
-
-import com.netflix.archaius.config.AbstractConfig;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Adaptor to allow an Apache Commons Configuration AbstractConfig to be used
@@ -95,18 +96,9 @@ public class CommonsToConfig extends AbstractConfig {
     public String getString(String key, String defaultValue) {
         List value = config.getList(key);
         if (value == null) {
-            return notFound(key, defaultValue != null ? getStrInterpolator().create(getLookup()).resolve(defaultValue) : null);
+            return notFound(key, defaultValue);
         }
-        List<String> interpolatedResult = new ArrayList<>();
-        for (Object part : value) {
-            if (part instanceof String) {
-                interpolatedResult.add(getStrInterpolator().create(getLookup()).resolve(part.toString()));
-            } else {
-                throw new UnsupportedOperationException(
-                        "Property values other than String not supported");
-            }
-        }
-        return StringUtils.join(interpolatedResult, getListDelimiter());
+        return (String) value.stream().map(Object::toString).collect(Collectors.joining(getListDelimiter()));
     }
 
     @Override
@@ -115,16 +107,19 @@ public class CommonsToConfig extends AbstractConfig {
         if (value == null) {
             return notFound(key);
         }
-        List<String> interpolatedResult = new ArrayList<>();
-        for (Object part : value) {
-            if (part instanceof String) {
-                interpolatedResult.add(getStrInterpolator().create(getLookup()).resolve(part.toString()));
-            } else {
-                throw new UnsupportedOperationException(
-                        "Property values other than String not supported");
-            }
-        }
-        return StringUtils.join(interpolatedResult, getListDelimiter());
+        return (String) value.stream().map(Object::toString).collect(Collectors.joining(getListDelimiter()));
+    }
+
+    @Override
+    public Iterable<String> getPropertyNames() {
+        Iterable<String> iterable = () -> getKeys();
+        return iterable;
+    }
+
+    @Override
+    public Optional<Object> getProperty(String key) {
+        // TODO: What about lists?
+        return Optional.ofNullable(this.getRawProperty(key));
     }
 
 }

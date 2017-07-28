@@ -167,7 +167,7 @@ public class ProxyFactoryTest {
         Config config = MapConfig.from(props);
 
         ConfigProxyFactory proxy = new ConfigProxyFactory(config, config.getDecoder(), new DefaultPropertyFactory(config.getPrefixedView("prefix")));
-        MyConfigWithInterpolation c = proxy.createInstance(MyConfigWithInterpolation.class);
+        MyConfigWithInterpolation c = proxy.createInstance(MyConfigWithInterpolation.class, "prefix");
 
         assertThat((long)c.getLong(),    equalTo(1L));
         

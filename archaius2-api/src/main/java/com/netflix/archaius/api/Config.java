@@ -134,27 +134,12 @@ public interface Config extends PropertySource {
      * @return Return a subset of the configuration prefixed by a key.
      */
     Config getPrefixedView(String prefix);
-    
-    /**
-     * Set the interpolator to be used.  The interpolator is normally created from the top level
-     * configuration object and is passed down to any children as they are added.
-     * @param interpolator
-     */
-    void setStrInterpolator(StrInterpolator interpolator);
-   
-    StrInterpolator getStrInterpolator();
-    
-    /**
-     * Set the Decoder used by get() to parse any type
-     * @param decoder
-     */
-    void setDecoder(Decoder decoder);
-    
-    Decoder getDecoder();
-    
+
     /**
      * Visitor pattern
      * @param visitor
      */
     <T> T accept(Visitor<T> visitor);
+
+    default Decoder getDecoder() { return null; }
 }

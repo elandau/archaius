@@ -15,9 +15,6 @@
  */
 package com.netflix.archaius;
 
-import org.junit.Test;
-
-import com.netflix.archaius.api.Config;
 import com.netflix.archaius.api.Property;
 import com.netflix.archaius.api.PropertyFactory;
 import com.netflix.archaius.api.config.CompositeConfig;
@@ -25,22 +22,21 @@ import com.netflix.archaius.api.exceptions.ConfigException;
 import com.netflix.archaius.config.DefaultCompositeConfig;
 import com.netflix.archaius.config.DefaultSettableConfig;
 import com.netflix.archaius.config.MapConfig;
-import com.netflix.archaius.visitor.PrintStreamVisitor;
+
+import org.junit.Test;
 
 public class ConfigManagerTest {
     @Test
     public void basicTest() {
-        ConfigManager configManager = new ConfigManager();
+        LayeredPropertySourceManager manager = LayeredPropertySourceManager.newBuilder().build();
         
 //            .addPropertySource(ArchaiusLayers.ENVIRONMENT,  EnvironmentConfig.INSTANCE)
 //            .addPropertySource(ArchaiusLayers.SYSTEM,       SystemConfig.INSTANCE)
-        configManager.addPropertySourceFromNamedResource(Layers.APPLICATION,       "application");
-        configManager.addPropertySourceFromNamedResource(Layers.LIBRARY,           "lib1");
-        configManager.setPropertyOverride(Layers.RUNTIME,    "foo", "value");
+        manager.addPropertySourceFromNamedResource(Layers.APPLICATION,       "application");
+        manager.addPropertySourceFromNamedResource(Layers.LIBRARY,           "lib1");
+        manager.setPropertyOverride(Layers.RUNTIME,    "foo", "value");
         
-        Config config = configManager.getConfig();
-        config.accept(new PrintStreamVisitor());
-        config.getString("foo");
+        manager.getLayeredPropertySource().forEachProperty((k, v) -> System.out.println(k + " = " + v));
     }
     
     @Test

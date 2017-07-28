@@ -15,18 +15,17 @@
  */
 package com.netflix.archaius.config;
 
+import com.netflix.archaius.api.Config;
+import com.netflix.archaius.api.ConfigListener;
+import com.netflix.archaius.api.StrInterpolator.Lookup;
+import com.netflix.archaius.interpolate.ConfigStrLookup;
+
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Map.Entry;
 import java.util.function.BiConsumer;
-
-import com.netflix.archaius.api.Config;
-import com.netflix.archaius.api.ConfigListener;
-import com.netflix.archaius.api.Decoder;
-import com.netflix.archaius.api.StrInterpolator;
-import com.netflix.archaius.api.StrInterpolator.Lookup;
-import com.netflix.archaius.interpolate.ConfigStrLookup;
 
 /**
  * View into another Config for properties starting with a specified prefix.
@@ -64,7 +63,7 @@ public class PrefixedViewConfig extends AbstractConfig {
 
     @Override
     public Iterator<String> getKeys() {
-        return state.data.keySet().iterator();
+        return getPropertyNames().iterator();
     }
 
     @Override
@@ -92,20 +91,13 @@ public class PrefixedViewConfig extends AbstractConfig {
     }
     
     @Override
+    public Optional<Object> getProperty(String key) {
+        return Optional.ofNullable(state.data.get(key));
+    }
+
+    @Override
     protected Lookup getLookup() { 
         return nonPrefixedLookup; 
-    }
-
-    @Override
-    public synchronized void setDecoder(Decoder decoder) {
-        super.setDecoder(decoder);
-        config.setDecoder(decoder);
-    }
-
-    @Override
-    public synchronized void setStrInterpolator(StrInterpolator interpolator) {
-        super.setStrInterpolator(interpolator);
-        config.setStrInterpolator(interpolator);
     }
 
     @Override
@@ -123,5 +115,10 @@ public class PrefixedViewConfig extends AbstractConfig {
     @Override
     public void forEachProperty(BiConsumer<String, Object> consumer) {
         this.state.data.forEach(consumer);
+    }
+
+    @Override
+    public Iterable<String> getPropertyNames() { 
+        return this.state.data.keySet();
     }
 }

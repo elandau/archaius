@@ -1,6 +1,6 @@
 package com.netflix.archaius.bridge;
 
-import com.netflix.archaius.ConfigManager;
+import com.netflix.archaius.LayeredPropertySourceManager;
 import com.netflix.archaius.Layers;
 import com.netflix.archaius.api.PropertySource;
 import com.netflix.archaius.commons.CommonsToConfig;
@@ -29,7 +29,7 @@ import javax.inject.Singleton;
 class AbstractConfigurationBridge extends AbstractConfiguration implements AggregatedConfiguration, DynamicPropertySupport {
 
     private final AtomicInteger libNameCounter = new AtomicInteger();
-    private final ConfigManager configManager;
+    private final LayeredPropertySourceManager configManager;
     
     {
         AbstractConfiguration.setDefaultListDelimiter('\0');
@@ -37,34 +37,34 @@ class AbstractConfigurationBridge extends AbstractConfiguration implements Aggre
     
     @Inject
     public AbstractConfigurationBridge(
-            final ConfigManager configManager,
-            DeploymentContext context) {
+            final LayeredPropertySourceManager configManager,
+            final DeploymentContext context) {
         this.configManager = configManager;
     }
     
     @Override
     public boolean isEmpty() {
-        return configManager.getConfig().isEmpty();
+        return configManager.getLayeredPropertySource().isEmpty();
     }
 
     @Override
     public boolean containsKey(String key) {
-        return configManager.getConfig().containsKey(key);
+        return configManager.getLayeredPropertySource().getProperty(key).isPresent();
     }
     
     @Override
     public String getString(String key, String defaultValue) {
-        return configManager.getConfig().getString(key, defaultValue);
+        return configManager.getString(key).orElse(defaultValue);
     }
 
     @Override
     public Object getProperty(String key) {
-        return configManager.getConfig().getRawProperty(key);  // Should interpolate
+        return configManager.getLayeredPropertySource().getProperty(key).orElse(null);  // Should interpolate
     }
 
     @Override
     public Iterator<String> getKeys() {
-        return configManager.getConfig().getKeys();
+        return configManager.getLayeredPropertySource().getPropertyNames().iterator();
     }
 
     @Override
@@ -79,7 +79,7 @@ class AbstractConfigurationBridge extends AbstractConfiguration implements Aggre
 
     @Override
     public void addConfiguration(AbstractConfiguration config, String name) {
-        configManager.addPropertySource(Layers.LIBRARY, new CommonsToConfig(config, name));
+        configManager.getLayeredPropertySource().addPropertySource(Layers.LIBRARY, new CommonsToConfig(config, name));
     }
 
     @Override

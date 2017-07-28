@@ -15,17 +15,18 @@
  */
 package com.netflix.archaius.config;
 
+import com.netflix.archaius.api.Config;
+import com.netflix.archaius.api.config.SettableConfig;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
 import java.util.function.BiConsumer;
-
-import com.netflix.archaius.api.Config;
-import com.netflix.archaius.api.config.SettableConfig;
 
 public class DefaultSettableConfig extends AbstractConfig implements SettableConfig {
     private volatile Map<String, Object> props = Collections.emptyMap();
@@ -75,6 +76,11 @@ public class DefaultSettableConfig extends AbstractConfig implements SettableCon
         return props.get(key);
     }
     
+    @Override
+    public Optional<Object> getProperty(String key) {
+        return Optional.ofNullable(props.get(key));
+    }
+
     @Override
     public Iterator<String> getKeys() {
         return props.keySet().iterator();
@@ -141,6 +147,11 @@ public class DefaultSettableConfig extends AbstractConfig implements SettableCon
         props.forEach(consumer);
     }
     
+    @Override
+    public Iterable<String> getPropertyNames() { 
+        return props.keySet();
+    }
+
     @Override
     public String getName() {
         return name;

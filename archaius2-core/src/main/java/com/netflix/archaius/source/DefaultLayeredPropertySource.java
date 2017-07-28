@@ -1,6 +1,5 @@
-package com.netflix.archaius.config;
+package com.netflix.archaius.source;
 
-import com.netflix.archaius.api.Config;
 import com.netflix.archaius.api.Layer;
 import com.netflix.archaius.api.LayeredPropertySource;
 import com.netflix.archaius.api.PropertySource;
@@ -13,28 +12,31 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 /**
- * Composite Config with child sources ordered by {@link Layer}s where there can be 
+ * Composite PropertySource with child sources ordered by {@link Layer}s where there can be 
  * multiple configs in each layer, ordered by insertion order.  Layers form an override 
  * hierarchy for property overrides.  Common hierarchies are, 
  * 
  *  Runtime -> Environment -> System -> Application -> Library -> Defaults
  */
-public class DefaultLayeredConfig extends AbstractConfig implements LayeredPropertySource {
-    private static final Logger LOG = LoggerFactory.getLogger(DefaultLayeredConfig.class);
+public class DefaultLayeredPropertySource implements LayeredPropertySource {
+    private static final Logger LOG = LoggerFactory.getLogger(DefaultLayeredPropertySource.class);
     
     private final String name;
     private volatile ImmutableCompositeState state = new ImmutableCompositeState(Collections.emptyList());
+
+    private CopyOnWriteArrayList<Consumer<ChangeEvent>> listeners = new CopyOnWriteArrayList<>();
     
-    public DefaultLayeredConfig(String name) {
+    public DefaultLayeredPropertySource(String name) {
         this.name = name;
     }
     
@@ -44,23 +46,13 @@ public class DefaultLayeredConfig extends AbstractConfig implements LayeredPrope
     }
 
     @Override
-    public Object getRawProperty(String key) {
-        return state.properties.get(key);
-    }
-
-    @Override
-    public boolean containsKey(String key) {
-        return state.properties.containsKey(key);
-    }
-
-    @Override
     public boolean isEmpty() {
         return state.properties.isEmpty();
     }
 
     @Override
-    public Iterator<String> getKeys() {
-        return state.properties.keySet().iterator();
+    public Iterable<String> getPropertyNames() { 
+        return state.properties.keySet();
     }
 
     @Override
@@ -68,23 +60,31 @@ public class DefaultLayeredConfig extends AbstractConfig implements LayeredPrope
         addPropertySource(layer, propertySource, insertionOrderCounter.incrementAndGet());
     }
     
+    @Override
     public synchronized void addPropertySource(Layer layer, PropertySource propertySource, int position) {
-        LOG.info("Adding property source {} at layer {}", propertySource.getName(), layer);
+        LOG.info("Adding property source '{}' at layer '{}'", propertySource.getName(), layer);
         
-        List<LayerAndPropertySource> newEntries = new ArrayList<>(state.children);
-        newEntries.add(new LayerAndPropertySource(layer, propertySource, position));
-        newEntries.sort(ByPriorityAndInsertionOrder);
-        state = new ImmutableCompositeState(newEntries);
+        state = state.add(new LayerAndPropertySource(layer, propertySource, position));
         
-        Config child = (Config)propertySource;
-        child.setStrInterpolator(getStrInterpolator());
-        child.setDecoder(getDecoder());
-        notifyConfigUpdated(child);
-        child.addListener(this::notifyConfigUpdated);
-
-        this.notifyConfigUpdated(this);
+        propertySource.addChangeEventListener(this::onChangeEvent);
+        notifyChangeEvent();
     }
 
+    private void notifyChangeEvent() {
+        ChangeEvent event = new ChangeEvent() {
+            @Override
+            public PropertySource getPropertySource() {
+                return DefaultLayeredPropertySource.this;
+            }
+        };
+        listeners.forEach(consumer -> consumer.accept(event));
+    }
+    
+    private synchronized void onChangeEvent(ChangeEvent event) {
+        state = state.refresh();
+        notifyChangeEvent();
+    }
+    
     @Override
     public Collection<PropertySource> getPropertySourcesAtLayer(Layer layer) {
         return state.children.stream()
@@ -99,27 +99,20 @@ public class DefaultLayeredConfig extends AbstractConfig implements LayeredPrope
     }
 
     @Override
-    public synchronized Optional<PropertySource> removePropertySource(Layer layer, String name) {
-        LOG.info("Removing property source {} at layer {}", name, layer);
-        List<LayerAndPropertySource> newEntries = new ArrayList<>(state.children);
-        Optional<PropertySource> previous = newEntries
-                .stream()
-                .filter(source -> source.layer.equals(layer) && source.propertySource.getName().equals(name))
-                .map(LayerAndPropertySource::getPropertySource)
-                .findFirst();
-                
-        newEntries.sort(ByPriorityAndInsertionOrder);
-        state = new ImmutableCompositeState(newEntries);
-        this.notifyConfigUpdated(this);
-        
-        return previous;
+    public synchronized void removePropertySource(Layer layer, String name) {
+        LOG.info("Removing property source '{}' from layer '{}'", name, layer);
+        ImmutableCompositeState newState = state.remove(layer, name);
+        if (newState != state) {
+            this.state = newState;
+            this.notifyChangeEvent();
+        }
     }
 
     @Override
     public void forEachProperty(BiConsumer<String, Object> consumer) {
         this.state.properties.forEach(consumer);
     }
-
+    
     private static final AtomicInteger insertionOrderCounter = new AtomicInteger(1);
     
     /**
@@ -203,9 +196,46 @@ public class DefaultLayeredConfig extends AbstractConfig implements LayeredPrope
         private final Map<String, Object> properties;
         
         ImmutableCompositeState(List<LayerAndPropertySource> entries) {
-            this.children = Collections.unmodifiableList(entries);
+            this.children = entries;
+            this.children.sort(ByPriorityAndInsertionOrder);
             this.properties = new HashMap<>();
             this.children.forEach(child -> child.propertySource.forEachProperty(properties::putIfAbsent));
-        }        
+        }
+        
+        public ImmutableCompositeState add(LayerAndPropertySource layerAndPropertySource) {
+            List<LayerAndPropertySource> newChildren = new ArrayList<>(this.children);
+            newChildren.add(layerAndPropertySource);
+            return new ImmutableCompositeState(newChildren);
+        }
+
+        public ImmutableCompositeState remove(Layer layer, String name) {
+            Optional<LayerAndPropertySource> previous = children
+                    .stream()
+                    .filter(source -> source.layer.equals(layer) && source.propertySource.getName().equals(name))
+                    .findFirst();
+
+            if (previous.isPresent()) {
+                List<LayerAndPropertySource> newChildren = new ArrayList<>(this.children.size());
+                this.children.stream().filter(source -> source != previous.get()).forEach(newChildren::add);
+                newChildren.sort(ByPriorityAndInsertionOrder);
+                return new ImmutableCompositeState(newChildren);
+            } else {
+                return this;
+            }
+        }
+
+        ImmutableCompositeState refresh() {
+            return new ImmutableCompositeState(children);
+        }
+    }
+
+    @Override
+    public void addChangeEventListener(Consumer<ChangeEvent> consumer) {
+        this.listeners.add(consumer);
+    }
+
+    @Override
+    public Optional<Object> getProperty(String key) {
+        return Optional.ofNullable(state.properties.get(key));
     }
 }

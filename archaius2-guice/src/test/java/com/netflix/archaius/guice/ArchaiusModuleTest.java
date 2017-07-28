@@ -15,15 +15,6 @@
  */
 package com.netflix.archaius.guice;
 
-import java.util.Properties;
-
-import javax.inject.Inject;
-
-import com.netflix.archaius.DefaultConfigLoader;
-import com.netflix.archaius.api.exceptions.ConfigException;
-import org.junit.Assert;
-import org.junit.Test;
-
 import com.google.inject.AbstractModule;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
@@ -34,8 +25,8 @@ import com.google.inject.multibindings.MapBinder;
 import com.google.inject.name.Names;
 import com.netflix.archaius.ConfigMapper;
 import com.netflix.archaius.ConfigProxyFactory;
+import com.netflix.archaius.LayeredPropertySourceManager;
 import com.netflix.archaius.api.Config;
-import com.netflix.archaius.api.Property;
 import com.netflix.archaius.api.annotations.Configuration;
 import com.netflix.archaius.api.annotations.ConfigurationSource;
 import com.netflix.archaius.api.annotations.DefaultValue;
@@ -47,6 +38,13 @@ import com.netflix.archaius.cascade.ConcatCascadeStrategy;
 import com.netflix.archaius.config.MapConfig;
 import com.netflix.archaius.exceptions.MappingException;
 import com.netflix.archaius.visitor.PrintStreamVisitor;
+
+import org.junit.Assert;
+import org.junit.Test;
+
+import java.util.Properties;
+
+import javax.inject.Inject;
 
 public class ArchaiusModuleTest {
     
@@ -64,7 +62,6 @@ public class ArchaiusModuleTest {
         private Integer int_value;
         private Boolean bool_value;
         private Double  double_value;
-        private Property<Integer> fast_int;
         private Named named;
         
         public void setStr_value(String value) {
@@ -78,12 +75,14 @@ public class ArchaiusModuleTest {
         public void setNamed(Named named) {
             this.named = named;
         }
-        
-        @Inject
-        public MyServiceConfig() {
-            
+
+        @Override
+        public String toString() {
+            return "MyServiceConfig [str_value=" + str_value + ", int_value=" + int_value + ", bool_value=" + bool_value
+                    + ", double_value=" + double_value + ", named=" + named + "]";
         }
-    }
+
+}
     
     @Singleton
     public static class MyService {
@@ -169,12 +168,14 @@ public class ArchaiusModuleTest {
                     }
                 }
             );
-            
+           
+        LayeredPropertySourceManager manager = injector.getInstance(LayeredPropertySourceManager.class);
+        manager.getLayeredPropertySource().forEachProperty((k, v) -> System.out.println("" + k + " = " + v));
         MyService service = injector.getInstance(MyService.class);
         Assert.assertTrue(service.getValue());
         
         MyServiceConfig serviceConfig = injector.getInstance(MyServiceConfig.class);
-
+        System.out.println(serviceConfig);
         Assert.assertTrue(serviceConfig.named instanceof Named1);
     }
 
@@ -199,7 +200,7 @@ public class ArchaiusModuleTest {
         ConfigMapper binder = new ConfigMapper();
         
         ChildService service = new ChildService("foo", 123L);
-        binder.mapConfig(service, config);
+//        binder.mapConfig(service, config);
         Assert.assertEquals("loaded", service.loaded);
     }
     
