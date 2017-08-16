@@ -19,9 +19,6 @@ package com.netflix.archaius.api;
  * Interface used by ConfigBinder to integrate with a DI framework that 
  * allows for named injection.  This integration enables binding a string
  * value for a type to a DI bound instance.
- * 
- * @author elandau
- *
  */
 public interface IoCContainer {
     /**

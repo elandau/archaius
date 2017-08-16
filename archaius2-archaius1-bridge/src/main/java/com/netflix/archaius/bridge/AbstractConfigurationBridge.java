@@ -54,7 +54,7 @@ class AbstractConfigurationBridge extends AbstractConfiguration implements Aggre
     
     @Override
     public String getString(String key, String defaultValue) {
-        return configManager.getString(key).orElse(defaultValue);
+        return configManager.getResolvingPropertySource().getString(key).orElse(defaultValue);
     }
 
     @Override

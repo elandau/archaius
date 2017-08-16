@@ -14,7 +14,8 @@ public interface PropertySource extends ChangeEventSource {
     Optional<Object> getProperty(String key);
 
     /**
-     * Mechanism for consuming all properties of the PropertySource
+     * Mechanism for consuming all properties of the PropertySource in a thread safe and consistent
+     * manner.
      * @param consumer
      */
     void forEachProperty(BiConsumer<String, Object> consumer);

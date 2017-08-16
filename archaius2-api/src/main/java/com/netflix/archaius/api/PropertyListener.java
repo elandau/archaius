@@ -18,10 +18,6 @@ package com.netflix.archaius.api;
 /**
  * Handler for property change notifications for a single property key
  * 
- * @see {@link DefaultAppConfig} for usage example
- * 
- * @author elandau
- *
  * @param <T>
  */
 public interface PropertyListener<T> {
@@ -37,5 +33,6 @@ public interface PropertyListener<T> {
      * Notification that a property update failed
      * @param error
      */
+    @Deprecated
     default void onParseError(Throwable error) {}
 }
