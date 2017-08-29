@@ -1,14 +1,5 @@
 package com.netflix.archaius;
 
-import com.netflix.archaius.api.BeanFactory;
-import com.netflix.archaius.api.Config;
-import com.netflix.archaius.api.Decoder;
-import com.netflix.archaius.api.PropertyFactory;
-import com.netflix.archaius.api.annotations.Configuration;
-import com.netflix.archaius.api.annotations.DefaultValue;
-import com.netflix.archaius.api.annotations.PropertyName;
-import com.netflix.archaius.source.InterpolatingPropertySource;
-
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationHandler;
@@ -17,14 +8,28 @@ import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Proxy;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
+import java.util.concurrent.atomic.AtomicStampedReference;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+
+import javax.swing.event.ChangeEvent;
+
+import com.netflix.archaius.api.BeanFactory;
+import com.netflix.archaius.api.Config;
+import com.netflix.archaius.api.Decoder;
+import com.netflix.archaius.api.PropertyFactory;
+import com.netflix.archaius.api.annotations.Configuration;
+import com.netflix.archaius.api.annotations.DefaultValue;
+import com.netflix.archaius.api.annotations.PropertyName;
+import com.netflix.archaius.source.InterpolatingPropertySource;
 
 /**
  * Factory for binding a configuration interface to properties in a {@link PropertyFactory}
@@ -147,7 +152,7 @@ public class ConfigProxyFactory implements BeanFactory {
     
     public <T> T newProxy(final Class<T> type, final String initialPrefix) {
         Configuration annot = type.getAnnotation(Configuration.class);
-        return newProxy(type, initialPrefix, annot == null ? false : annot.immutable());
+        return createInstance(type, initialPrefix, annot == null ? false : annot.immutable());
     }
     
     private String methodToPropertyName(Method method) {
@@ -185,14 +190,11 @@ public class ConfigProxyFactory implements BeanFactory {
     }
     
     @SuppressWarnings({ "unchecked" })
-    <T> T newProxy(final Class<T> type, final String initialPrefix, boolean immutable) {
+    <T> T createInstance(final Class<T> type, final String initialPrefix, boolean immutable) {
         Configuration annot = type.getAnnotation(Configuration.class);
         final String prefix = derivePrefix(annot, initialPrefix);
         
-        // Iterate through all declared methods of the class looking for setter methods.
-        // Each setter will be mapped to a Property<T> for the property name:
-        //      prefix + lowerCamelCaseDerivedPropertyName
-        final Supplier<Map<Method, KeyAndValue>> methodSupplier = () -> Arrays
+        final Map<Method, KeyAndValue> methodAndDefaultValues = Arrays
                 .stream(type.getMethods())
                 .collect(Collectors.toMap(
                         method -> method,
@@ -209,7 +211,7 @@ public class ConfigProxyFactory implements BeanFactory {
                                                 + m.getDeclaringClass().getName() + "#" + m.getName());
                                     }
                                     
-                                    // TODO: Test number interpolation for default value.  Exm.  @DefaultValue("${some.expected.integer:123}")
+                                    // TODO: Test number interpolation for default value.  Ex.  @DefaultValue("${some.expected.integer:123}")
                                     String value = m.getAnnotation(DefaultValue.class).value();
                                     defaultValue = resolver.resolve(interpolator.apply(value).toString(), returnType);
                                 } 
@@ -229,7 +231,7 @@ public class ConfigProxyFactory implements BeanFactory {
                                     }
                                 }
                                 
-                                return new KeyAndValue(propName, resolver.getProperty(propName, m.getGenericReturnType()).orElse(defaultValue));
+                                return new KeyAndValue(propName, defaultValue);
                                 
                                 // TODO: Support sub-interfaces?
                                 // TODO: Support sub-interfaces in a Map?!
@@ -241,9 +243,26 @@ public class ConfigProxyFactory implements BeanFactory {
                     )
                 );
         
+        // Iterate through all declared methods of the class looking for setter methods.
+        // Each setter will be mapped to a Property<T> for the property name:
+        //      prefix + lowerCamelCaseDerivedPropertyName
+        final Supplier<Map<Method, KeyAndValue>> entitySupplier = () -> {
+            IdentityHashMap<Method, KeyAndValue> values = new IdentityHashMap<>(methodAndDefaultValues.size());
+            methodAndDefaultValues.forEach((method, keyAndDefault) ->
+                values.put(
+                    method, 
+                    new KeyAndValue(keyAndDefault.key, resolver.getProperty(keyAndDefault.key, method.getGenericReturnType()).orElse(keyAndDefault.value)))
+            );
+            return values;
+        };
+        
         final Supplier<Map<Method, KeyAndValue>> methods = annot == null || !annot.immutable()
-                ? methodSupplier
-                : memoize(methodSupplier);
+                ? entitySupplier
+                : memoize(entitySupplier);
+        
+        this.resolver.getPropertySource().addChangeEventListener((event) -> {
+            
+        });
         
         // Hack so that default interface methods may be called from a proxy
         final MethodHandles.Lookup temp;
@@ -284,5 +303,22 @@ public class ConfigProxyFactory implements BeanFactory {
             }
         };
         return (T) Proxy.newProxyInstance(type.getClassLoader(), new Class[] { type }, handler);
+    }
+    
+    private static class CachedSupplier<T> implements Consumer<ChangeEvent> {
+        private static int CLEAN = 0;
+        
+        private final Supplier<T> source;
+        private AtomicStampedReference<T> cache;
+        
+        public CachedSupplier(Supplier<T> source) {
+            this.source = source;
+            this.cache = new AtomicStampedReference<>(source.get(), 0);
+        }
+        
+        @Override
+        public void accept(ChangeEvent t) {
+            cache.set(newReference, newStamp);
+        }
     }
 }
